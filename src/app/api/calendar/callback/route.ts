@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { storeTokens } from "@/lib/google/calendar";
+import { siteOrigin } from "@/lib/url";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const origin = siteOrigin(request);
   const code    = searchParams.get("code");
   const userId  = searchParams.get("state");
   const error   = searchParams.get("error");

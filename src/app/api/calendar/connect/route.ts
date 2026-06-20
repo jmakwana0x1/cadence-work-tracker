@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { siteOrigin } from "@/lib/url";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -6,8 +7,7 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
 
-  const { origin } = new URL(request.url);
-  const redirectUri = `${origin}/api/calendar/callback`;
+  const redirectUri = `${siteOrigin(request)}/api/calendar/callback`;
 
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id",     process.env.GOOGLE_CLIENT_ID!);
