@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest *)",
+      "Bash(cp /home/jmakwana01/v4-new/carve/claude.md /tmp/claude.md)",
+      "Bash(rm /home/jmakwana01/v4-new/carve/claude.md)"
+    ]
+  }
+}
