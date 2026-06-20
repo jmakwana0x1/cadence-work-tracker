@@ -13,7 +13,14 @@
       "Bash(npm view *)",
       "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const v=JSON.parse\\(d\\);console.log\\(v.filter\\(x=>x.startsWith\\('16.'\\)\\).slice\\(-12\\).join\\(', '\\)\\)}\\)\")",
       "Bash(npx eslint *)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "Bash(timeout 240 npm run build)",
+      "Bash(git add *)",
+      "Bash(git restore *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('hooks','no hooks'\\),indent=2\\)\\)\")",
+      "Bash(cp /tmp/genicons.mjs ./genicons.mjs)",
+      "Bash(node ./genicons.mjs)",
+      "Bash(node -e \"const b=require\\('fs'\\).readFileSync\\('src/app/favicon.ico'\\);console.log\\('type',b.readUInt16LE\\(2\\),'count',b.readUInt16LE\\(4\\)\\);const off=b.readUInt32LE\\(6+12\\);console.log\\('first img is PNG:', b.slice\\(off,off+8\\).toString\\('hex'\\)==='89504e470d0a1a0a'\\)\")"
     ]
   }
 }
