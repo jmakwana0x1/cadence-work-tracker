@@ -1,12 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
+import { BarChart3 } from "lucide-react";
 import { HabitList } from "@/components/habits/HabitList";
 import { WeeklyConsistency } from "@/components/heatmap/WeeklyConsistency";
 import { DisciplineScoreCard } from "@/components/score/DisciplineScoreCard";
 import { TaskList } from "@/components/tasks/TaskList";
 import { PlannerLoader } from "@/components/planner/PlannerLoader";
 import { CalendarLoader } from "@/components/calendar/CalendarLoader";
+import { TimezoneSync } from "@/components/TimezoneSync";
 
 function ScoreSkeleton() {
   return (
@@ -62,16 +65,26 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   return (
     <main className="min-h-dvh p-6 md:p-8">
+      <TimezoneSync current={user.user_metadata?.timezone ?? null} />
       <div className="max-w-5xl mx-auto flex flex-col gap-8">
 
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            {firstName ? `Hey, ${firstName}.` : "Welcome back."}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              {firstName ? `Hey, ${firstName}.` : "Welcome back."}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            </p>
+          </div>
+          <Link
+            href="/insights"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-foreground hover:bg-white/[0.08] transition-colors"
+          >
+            <BarChart3 className="h-4 w-4 text-cadence-accent" />
+            Insights
+          </Link>
         </div>
 
         {/* Score + Heatmap */}

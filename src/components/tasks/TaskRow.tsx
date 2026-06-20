@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { toggleTask, deleteTask } from "@/lib/actions/tasks";
@@ -36,12 +36,14 @@ interface TaskRowProps {
 
 export function TaskRow({ task }: TaskRowProps) {
   const [isPending, startTransition] = useTransition();
-  const done = task.completed_at !== null;
+  const serverDone = task.completed_at !== null;
+  const [done, setOptimisticDone] = useOptimistic(serverDone, (_, next: boolean) => next);
   const pCfg = PRIORITY_CONFIG[task.priority];
   const due = dueDateDisplay(task.due_at);
 
   function handleToggle() {
     startTransition(async () => {
+      setOptimisticDone(!done);
       try {
         await toggleTask(task.id, done);
       } catch {
@@ -73,6 +75,9 @@ export function TaskRow({ task }: TaskRowProps) {
       <button
         onClick={handleToggle}
         disabled={isPending}
+        role="checkbox"
+        aria-checked={done}
+        aria-label={done ? `Mark "${task.title}" incomplete` : `Mark "${task.title}" complete`}
         className="flex-shrink-0 w-4 h-4 rounded-full border border-white/20 hover:border-cadence-accent/60 flex items-center justify-center transition-all"
         style={done ? { background: "var(--cadence-accent)", borderColor: "var(--cadence-accent)" } : {}}
       >
@@ -107,7 +112,8 @@ export function TaskRow({ task }: TaskRowProps) {
         <button
           onClick={handleDelete}
           disabled={isPending}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/40 hover:text-red-400/70"
+          aria-label={`Delete task "${task.title}"`}
+          className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-muted-foreground/40 hover:text-red-400/70"
         >
           <X className="h-3.5 w-3.5" />
         </button>

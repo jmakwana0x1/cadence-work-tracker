@@ -16,7 +16,8 @@ function defaultTimes(hour?: number) {
   const h = hour ?? new Date().getHours();
   return {
     start: `${pad(h)}:00`,
-    end:   `${pad(Math.min(h + 1, 23))}:00`,
+    // Clamp the last hour to 23:59 so the default block is never zero-length.
+    end:   h >= 23 ? "23:59" : `${pad(h + 1)}:00`,
   };
 }
 

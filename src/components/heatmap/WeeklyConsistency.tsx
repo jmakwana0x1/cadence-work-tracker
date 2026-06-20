@@ -1,22 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
+import { localToday, addDaysStr, dowOf, domOf, monthOf, userTimezone } from "@/lib/date";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function toLocal(date: Date) {
-  return date.toISOString().split("T")[0];
-}
 
 export async function WeeklyConsistency() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Build last 7 days ending today
-  const today = new Date();
+  // Build last 7 days ending today (in the user's timezone)
+  const todayStr = localToday(userTimezone(user));
   const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() - (6 - i));
-    return { date: toLocal(d), dow: d.getDay(), dayNum: d.getDate(), month: d.getMonth() };
+    const date = addDaysStr(todayStr, -(6 - i));
+    return { date, dow: dowOf(date), dayNum: domOf(date), month: monthOf(date) };
   });
 
   const startDate = days[0].date;
@@ -43,7 +39,6 @@ export async function WeeklyConsistency() {
     activityMap.set(log.logged_at, prev + (log.status === "done" ? 1 : 0.5));
   }
 
-  const todayStr = toLocal(today);
   const activeDays = days.filter((d) => activityMap.has(d.date) && d.date <= todayStr).length;
 
   // Streak: consecutive days ending today with activity

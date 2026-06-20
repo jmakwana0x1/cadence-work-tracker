@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { upsertDailyScore } from "@/lib/actions/score";
+import { localToday, userTimezone } from "@/lib/date";
 import type { BlockStatus } from "@/types/database";
 
 export async function createBlock(formData: FormData) {
@@ -12,7 +13,7 @@ export async function createBlock(formData: FormData) {
 
   const planned_label = (formData.get("planned_label") as string)?.trim();
   const category = (formData.get("category") as string) || "general";
-  const date = (formData.get("date") as string) || new Date().toISOString().split("T")[0];
+  const date = (formData.get("date") as string) || localToday(userTimezone(user));
   const start_time = formData.get("start_time") as string;
   const end_time = formData.get("end_time") as string;
 

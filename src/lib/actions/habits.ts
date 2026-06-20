@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { computeStreak, shouldAwardFreezeToken, toDateStr } from "@/lib/streaks";
+import { computeStreak, shouldAwardFreezeToken } from "@/lib/streaks";
+import { localToday, userTimezone } from "@/lib/date";
 import { upsertDailyScore } from "@/lib/actions/score";
 import type { HabitLog, HabitStatus } from "@/types/database";
 
@@ -38,7 +39,7 @@ export async function logHabit(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
-  const today = toDateStr(new Date());
+  const today = localToday(userTimezone(user));
 
   const { error } = await supabase.from("habit_logs").upsert(
     { habit_id: habitId, user_id: user.id, logged_at: today, status },
@@ -53,7 +54,7 @@ export async function logHabit(
     .eq("habit_id", habitId)
     .eq("user_id", user.id);
 
-  const streak = computeStreak(habitId, (logs ?? []) as HabitLog[]);
+  const streak = computeStreak(habitId, (logs ?? []) as HabitLog[], today);
   const awardToken = status !== "skip" && shouldAwardFreezeToken(streak);
 
   if (awardToken) {

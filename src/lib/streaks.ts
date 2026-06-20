@@ -1,4 +1,5 @@
 import type { HabitLog } from "@/types/database";
+import { addDaysStr, localToday } from "@/lib/date";
 
 // Returns streak length for a habit given its logs.
 // Rules:
@@ -6,15 +7,20 @@ import type { HabitLog } from "@/types/database";
 //   - If today is NOT logged → count back from yesterday (streak still alive until EOD)
 //   - skip logs do NOT break a streak (a freeze token may have been used, or we skip counting them)
 //   - A day with no log at all breaks the streak
-export function computeStreak(habitId: string, logs: HabitLog[]): number {
+//
+// `todayStr` is the user's local "today" (YYYY-MM-DD). It is passed in so the
+// calculation matches the timezone the logs were recorded in.
+export function computeStreak(
+  habitId: string,
+  logs: HabitLog[],
+  todayStr: string = localToday()
+): number {
   const doneDays = new Set(
     logs
       .filter((l) => l.habit_id === habitId && l.status !== "skip")
       .map((l) => l.logged_at)
   );
 
-  const today = new Date();
-  const todayStr = toDateStr(today);
   const todayLogged = doneDays.has(todayStr);
 
   let streak = 0;
@@ -22,9 +28,7 @@ export function computeStreak(habitId: string, logs: HabitLog[]): number {
   const startOffset = todayLogged ? 0 : 1;
 
   for (let i = startOffset; i < 365; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const ds = toDateStr(d);
+    const ds = addDaysStr(todayStr, -i);
     if (doneDays.has(ds)) {
       streak++;
     } else {
@@ -46,18 +50,11 @@ export function shouldAwardFreezeToken(streak: number): boolean {
 // and the day before yesterday was active (i.e. there was a streak to protect)
 export function getMissedDayToFreeze(
   habitId: string,
-  logs: HabitLog[]
+  logs: HabitLog[],
+  todayStr: string = localToday()
 ): string | null {
-  const today = new Date();
-  const todayStr = toDateStr(today);
-
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const yesterdayStr = toDateStr(yesterday);
-
-  const dayBefore = new Date(today);
-  dayBefore.setDate(today.getDate() - 2);
-  const dayBeforeStr = toDateStr(dayBefore);
+  const yesterdayStr = addDaysStr(todayStr, -1);
+  const dayBeforeStr = addDaysStr(todayStr, -2);
 
   const logMap = new Map(
     logs.filter((l) => l.habit_id === habitId).map((l) => [l.logged_at, l.status])
@@ -79,9 +76,8 @@ export function getMissedDayToFreeze(
   return null;
 }
 
-export function toDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
-}
+// Backwards-compatible alias. Prefer importing from "@/lib/date".
+export { localDateStr as toDateStr } from "@/lib/date";
 
 export function flameLevel(streak: number): 0 | 1 | 2 | 3 | 4 {
   if (streak === 0) return 0;

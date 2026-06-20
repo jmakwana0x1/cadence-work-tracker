@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { HabitCard } from "./HabitCard";
 import { CreateHabitDialog } from "./CreateHabitDialog";
 import { computeStreak, getMissedDayToFreeze } from "@/lib/streaks";
+import { localToday, addDaysStr, userTimezone } from "@/lib/date";
 import type { Habit, HabitLog, HabitWithTodayLog } from "@/types/database";
 
 export async function HabitList() {
@@ -9,9 +10,9 @@ export async function HabitList() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const today = new Date().toISOString().split("T")[0];
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const tz = userTimezone(user);
+  const today = localToday(tz);
+  const ninetyDaysAgo = addDaysStr(today, -90);
 
   const [{ data: habits }, { data: logs }] = await Promise.all([
     supabase.from("habits").select("*").eq("user_id", user.id).order("created_at"),
@@ -19,7 +20,7 @@ export async function HabitList() {
       .from("habit_logs")
       .select("*")
       .eq("user_id", user.id)
-      .gte("logged_at", ninetyDaysAgo.toISOString().split("T")[0]),
+      .gte("logged_at", ninetyDaysAgo),
   ]);
 
   if (!habits || habits.length === 0) {
@@ -50,11 +51,18 @@ export async function HabitList() {
     today_log: todayLogMap.get(h.id) ?? null,
   }));
 
-  const streaks = habitsWithLogs.map((h) => computeStreak(h.id, allLogs));
-  const missedDays = habitsWithLogs.map((h) => getMissedDayToFreeze(h.id, allLogs));
+  const streaks = habitsWithLogs.map((h) => computeStreak(h.id, allLogs, today));
+  const missedDays = habitsWithLogs.map((h) => getMissedDayToFreeze(h.id, allLogs, today));
 
   const doneCount = allLogs.filter((l) => l.logged_at === today && l.status === "done").length;
   const partialCount = allLogs.filter((l) => l.logged_at === today && l.status === "partial").length;
+
+  // Streaks the user still has time to save today: a live streak (≥2 days)
+  // on a habit that hasn't been logged yet. This is the core daily nudge.
+  const atRisk = habitsWithLogs
+    .map((h, i) => ({ name: h.name, streak: streaks[i], logged: h.today_log !== null }))
+    .filter((h) => h.streak >= 2 && !h.logged)
+    .sort((a, b) => b.streak - a.streak);
 
   return (
     <div className="flex flex-col gap-4">
@@ -67,6 +75,30 @@ export async function HabitList() {
         </div>
         <CreateHabitDialog />
       </div>
+
+      {atRisk.length > 0 && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.07] px-3.5 py-2.5">
+          <span className="text-base leading-none mt-0.5">🔥</span>
+          <p className="text-xs text-amber-200/90 leading-relaxed">
+            {atRisk.length === 1 ? (
+              <>
+                Your <span className="font-semibold">{atRisk[0].streak}-day</span>{" "}
+                <span className="font-medium">{atRisk[0].name}</span> streak is still
+                unlogged today — don&apos;t let it slip.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{atRisk.length} streaks</span> are still
+                unlogged today
+                {atRisk[0].streak >= 7 && (
+                  <> — including {atRisk[0].streak} days of {atRisk[0].name}</>
+                )}
+                . Keep them alive.
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {habitsWithLogs.map((habit, i) => (

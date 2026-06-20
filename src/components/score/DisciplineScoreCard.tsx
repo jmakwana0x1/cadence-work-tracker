@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeDisciplineScore } from "@/lib/discipline";
-import { toDateStr } from "@/lib/streaks";
+import { localToday, localDateStr, addDaysStr, userTimezone } from "@/lib/date";
 import { ScoreHero } from "./ScoreHero";
 import { ScoreTrend } from "./ScoreTrend";
 import type { HabitLog, ScoreComponents } from "@/types/database";
@@ -10,15 +10,16 @@ export async function DisciplineScoreCard() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const today = toDateStr(new Date());
-  const yesterday = toDateStr(new Date(Date.now() - 86400000));
-  const thirtyDaysAgo = toDateStr(new Date(Date.now() - 30 * 86400000));
+  const tz = userTimezone(user);
+  const today = localToday(tz);
+  const yesterday = addDaysStr(today, -1);
+  const thirtyDaysAgo = addDaysStr(today, -30);
 
   const [
     { data: habits },
     { data: todayLogs },
     { data: scores },
-    { data: todayTasks },
+    { data: dueTasks },
     { data: todayBlocks },
   ] = await Promise.all([
     supabase.from("habits").select("id").eq("user_id", user.id),
@@ -29,11 +30,13 @@ export async function DisciplineScoreCard() {
       .eq("user_id", user.id)
       .gte("date", thirtyDaysAgo)
       .order("date"),
-    // All tasks — completion rate across entire backlog drives the score
+    // Only tasks due today (in the user's timezone) drive the live score —
+    // mirrors upsertDailyScore so the live and persisted numbers agree.
     supabase
       .from("tasks")
-      .select("completed_at")
-      .eq("user_id", user.id),
+      .select("due_at, completed_at")
+      .eq("user_id", user.id)
+      .not("due_at", "is", null),
     supabase
       .from("time_blocks")
       .select("actual_status")
@@ -41,8 +44,11 @@ export async function DisciplineScoreCard() {
       .eq("date", today),
   ]);
 
-  const tasksTotal = todayTasks?.length ?? 0;
-  const tasksCompleted = todayTasks?.filter((t) => t.completed_at !== null).length ?? 0;
+  const dueToday = (dueTasks ?? []).filter(
+    (t) => t.due_at && localDateStr(new Date(t.due_at), tz) === today
+  );
+  const tasksTotal = dueToday.length;
+  const tasksCompleted = dueToday.filter((t) => t.completed_at !== null).length;
   const blocksTotal = todayBlocks?.length ?? 0;
   const blocksHit =
     todayBlocks?.reduce((sum, b) => {

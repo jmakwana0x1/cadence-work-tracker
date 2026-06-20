@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Minus, X, Snowflake } from "lucide-react";
 import { logHabit, deleteHabit, useFreezeToken } from "@/lib/actions/habits";
@@ -33,12 +33,19 @@ const FLAME_SCALE = [1, 1, 1.15, 1.3, 1.5] as const;
 
 export function HabitCard({ habit, streak, missedDayToFreeze }: HabitCardProps) {
   const [isPending, startTransition] = useTransition();
-  const todayStatus = habit.today_log?.status ?? null;
+  const serverStatus = habit.today_log?.status ?? null;
+  // Optimistic status so the card flips the moment you tap, before the server
+  // round-trip + revalidation completes.
+  const [todayStatus, setOptimisticStatus] = useOptimistic<HabitStatus | null, HabitStatus | null>(
+    serverStatus,
+    (_, next) => next
+  );
   const level = flameLevel(streak);
   const flame = FLAME_CONFIG[level];
 
   function handleLog(status: HabitStatus) {
     startTransition(async () => {
+      setOptimisticStatus(status);
       try {
         const result = await logHabit(habit.id, status);
         const labels = { done: "Logged ✓", partial: "Partial logged", skip: "Skipped" };

@@ -1,23 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { HeatmapGrid } from "./HeatmapGrid";
+import { localToday, addDaysStr, dowOf, userTimezone } from "@/lib/date";
 
-// Build a 52-week × 7-day grid ending today
-function buildGrid(today: Date) {
+// Build a 52-week × 7-day grid ending today (all on date-only strings)
+function buildGrid(todayStr: string) {
   const days: { date: string; dow: number }[] = [];
-  // Start from the Sunday 52 weeks ago
-  const start = new Date(today);
-  start.setDate(start.getDate() - 364);
-  // Rewind to the previous Sunday
-  start.setDate(start.getDate() - start.getDay());
+  // Start 364 days back, then rewind to the previous Sunday
+  let start = addDaysStr(todayStr, -364);
+  start = addDaysStr(start, -dowOf(start));
 
   for (let i = 0; i < 371; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    if (d > today) break;
-    days.push({
-      date: d.toISOString().split("T")[0],
-      dow: d.getDay(),
-    });
+    const date = addDaysStr(start, i);
+    if (date > todayStr) break;
+    days.push({ date, dow: dowOf(date) });
   }
   return days;
 }
@@ -27,8 +22,8 @@ export async function ConsistencyHeatmap() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const today = new Date();
-  const grid = buildGrid(today);
+  const todayStr = localToday(userTimezone(user));
+  const grid = buildGrid(todayStr);
   const startDate = grid[0].date;
 
   const { data: logs } = await supabase
@@ -76,7 +71,7 @@ export async function ConsistencyHeatmap() {
           </p>
         </div>
       </div>
-      <HeatmapGrid cells={cells} today={today.toISOString().split("T")[0]} />
+      <HeatmapGrid cells={cells} today={todayStr} />
     </div>
   );
 }

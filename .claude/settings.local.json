@@ -6,7 +6,14 @@
       "Bash(rm /home/jmakwana01/v4-new/carve/claude.md)",
       "Bash(npm install *)",
       "Bash(npx shadcn@latest *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npm test *)",
+      "Bash(NEXT_PUBLIC_SUPABASE_URL=\"https://placeholder.supabase.co\" NEXT_PUBLIC_SUPABASE_ANON_KEY=\"placeholder\" npx next build)",
+      "Bash(node -p \"require\\('next/package.json'\\).version\")",
+      "Bash(npm view *)",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const v=JSON.parse\\(d\\);console.log\\(v.filter\\(x=>x.startsWith\\('16.'\\)\\).slice\\(-12\\).join\\(', '\\)\\)}\\)\")",
+      "Bash(npx eslint *)",
+      "Bash(npx vitest *)"
     ]
   }
 }

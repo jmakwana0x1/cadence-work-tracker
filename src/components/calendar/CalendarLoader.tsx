@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { isCalendarConnected } from "@/lib/google/calendar";
+import { userTimezone, localToday } from "@/lib/date";
 import { CalendarSync } from "./CalendarSync";
-import type { CalendarEvent, TimeBlock } from "@/types/database";
+import type { CalendarEvent } from "@/types/database";
 
 interface CalendarLoaderProps {
   calendarError?: string;
@@ -13,37 +14,33 @@ export async function CalendarLoader({ calendarError }: CalendarLoaderProps) {
   if (!user) return null;
 
   const connected = await isCalendarConnected(user.id);
-  const todayStr  = new Date().toISOString().split("T")[0];
+  const tz = userTimezone(user);
+  const today = localToday(tz);
 
-  const startOfDay = `${todayStr}T00:00:00.000Z`;
-  const endOf7Days = new Date(Date.now() + 7 * 86400000).toISOString();
-
-  const [eventsResult, blocksResult] = await Promise.all([
-    connected
-      ? supabase
-          .from("events")
-          .select("*")
-          .eq("user_id", user.id)
-          .gte("start_at", startOfDay)
-          .lte("start_at", endOf7Days)
-          .order("start_at")
-          .limit(50)
-      : Promise.resolve({ data: null }),
-
-    supabase
-      .from("time_blocks")
+  let events: CalendarEvent[] = [];
+  if (connected) {
+    // Pull a generous window; the grid renders a 7-day view starting today.
+    // Start a day back so events earlier *today* still appear in the grid.
+    const nowMs = new Date().getTime();
+    const startWindow = new Date(nowMs - 86400000).toISOString();
+    const endOf7Days = new Date(nowMs + 8 * 86400000).toISOString();
+    const { data } = await supabase
+      .from("events")
       .select("*")
       .eq("user_id", user.id)
-      .eq("date", todayStr)
-      .order("start_time"),
-  ]);
+      .gte("start_at", startWindow)
+      .lte("start_at", endOf7Days)
+      .order("start_at")
+      .limit(100);
+    events = (data ?? []) as CalendarEvent[];
+  }
 
   return (
     <CalendarSync
       connected={connected}
-      events={(eventsResult.data ?? []) as CalendarEvent[]}
-      blocks={(blocksResult.data ?? []) as TimeBlock[]}
-      todayStr={todayStr}
+      events={events}
+      tz={tz}
+      today={today}
       initialError={calendarError}
     />
   );

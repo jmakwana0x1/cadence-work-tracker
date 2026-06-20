@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useTransition, useCallback } from "react";
+import { useState, useRef, useTransition, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DndContext,
@@ -19,12 +19,18 @@ import { toast } from "sonner";
 import type { TimeBlock, BlockStatus } from "@/types/database";
 
 // ── Layout constants ────────────────────────────────────────────────
-const START_HOUR  = 6;   // 6 am
-const END_HOUR    = 23;  // 11 pm
+const START_HOUR  = 0;   // midnight
+const END_HOUR    = 24;  // midnight (full 24-hour day)
 const PX_PER_HOUR = 64;
 const PX_PER_MIN  = PX_PER_HOUR / 60;
 const SNAP_MINS   = 15;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
+
+// Short hour label, e.g. 0 → "12a", 12 → "12p", 24 → "12a".
+function hourLabel(hour: number) {
+  const h = hour % 24;
+  return `${h % 12 || 12}${h < 12 ? "a" : "p"}`;
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   work:        "#8b5cf6",
@@ -184,7 +190,7 @@ function Timeline({
             style={{ top: i * PX_PER_HOUR }}
           >
             <span className="text-[10px] text-muted-foreground/50 w-10 flex-shrink-0 -translate-y-2 select-none text-right pr-2">
-              {hour % 12 || 12}{hour < 12 ? "a" : "p"}
+              {hourLabel(hour)}
             </span>
             <div className="flex-1 border-t border-white/[0.06]" />
             {/* Click to create block at this hour */}
@@ -231,6 +237,19 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
+
+  // Open scrolled to the earliest block (or ~6am) so the full-day timeline
+  // doesn't start parked on the empty small hours.
+  useEffect(() => {
+    const el = timelineRef.current;
+    if (!el) return;
+    const earliestMin = blocks.length
+      ? Math.min(...blocks.map((b) => timeToMins(b.start_time)))
+      : 6 * 60;
+    el.scrollTop = Math.max(0, (earliestMin - START_HOUR * 60) * PX_PER_MIN - 24);
+    // Mount-only: a one-time initial scroll position.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Keep local state in sync when server revalidates
   if (JSON.stringify(blocks.map((b) => b.id + b.start_time + b.actual_status)) !==
@@ -306,23 +325,26 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
 
   const activeBlock = localBlocks.find((b) => b.id === activeId);
 
-  // Plan vs actual stats
-  const marked = localBlocks.filter((b) => b.actual_status);
+  // Plan vs actual stats. Every block falls into exactly one bucket so the
+  // counts always sum to the planned total: hit + partial + missed + remaining.
+  const total = localBlocks.length;
   const hitCount = localBlocks.filter((b) => b.actual_status === "hit").length;
   const partialCount = localBlocks.filter((b) => b.actual_status === "partial").length;
+  const missedCount = localBlocks.filter((b) => b.actual_status === "missed").length;
+  const markedCount = hitCount + partialCount + missedCount;
+  const remainingCount = total - markedCount;
 
   return (
     <div className={`flex flex-col gap-3 transition-opacity ${isPending ? "opacity-80" : ""}`}>
       {/* Header stats */}
-      {localBlocks.length > 0 && (
-        <div className="flex gap-4 text-xs text-muted-foreground">
-          <span>{localBlocks.length} blocks planned</span>
-          {marked.length > 0 && (
-            <>
-              <span className="text-emerald-400">{hitCount} hit</span>
-              {partialCount > 0 && <span className="text-amber-400">{partialCount} partial</span>}
-              <span>{localBlocks.length - marked.length} remaining</span>
-            </>
+      {total > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span>{total} block{total !== 1 ? "s" : ""} planned</span>
+          {hitCount > 0 && <span className="text-emerald-400">{hitCount} hit</span>}
+          {partialCount > 0 && <span className="text-amber-400">{partialCount} partial</span>}
+          {missedCount > 0 && <span className="text-red-400">{missedCount} missed</span>}
+          {remainingCount > 0 && markedCount > 0 && (
+            <span>{remainingCount} remaining</span>
           )}
         </div>
       )}
@@ -361,7 +383,7 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
                       style={{ top: i * PX_PER_HOUR }}
                     >
                       <span className="text-[10px] text-muted-foreground/40 w-10 flex-shrink-0 -translate-y-2 select-none text-right pr-2">
-                        {hour % 12 || 12}{hour < 12 ? "a" : "p"}
+                        {hourLabel(hour)}
                       </span>
                       <div className="flex-1 border-t border-white/[0.05]" />
                       <button

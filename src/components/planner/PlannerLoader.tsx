@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Planner } from "./Planner";
+import { localToday, userTimezone } from "@/lib/date";
 import type { TimeBlock } from "@/types/database";
 
 export async function PlannerLoader() {
@@ -7,7 +8,7 @@ export async function PlannerLoader() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localToday(userTimezone(user));
 
   const { data } = await supabase
     .from("time_blocks")

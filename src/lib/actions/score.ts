@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { computeDisciplineScore } from "@/lib/discipline";
-import { toDateStr } from "@/lib/streaks";
+import { localToday, localDateStr, userTimezone } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 import type { HabitLog } from "@/types/database";
 
@@ -11,7 +11,8 @@ export async function upsertDailyScore(dateStr?: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  const date = dateStr ?? toDateStr(new Date());
+  const tz = userTimezone(user);
+  const date = dateStr ?? localToday(tz);
 
   const [{ data: habits }, { data: habitLogs }, { data: tasks }, { data: blocks }] =
     await Promise.all([
@@ -21,10 +22,13 @@ export async function upsertDailyScore(dateStr?: string) {
         .select("*")
         .eq("user_id", user.id)
         .eq("logged_at", date),
+      // Tasks carry a timestamptz due date; scope to those *due on `date`* in the
+      // user's timezone. Without this the score counts the entire backlog.
       supabase
         .from("tasks")
-        .select("completed_at")
-        .eq("user_id", user.id),
+        .select("due_at, completed_at")
+        .eq("user_id", user.id)
+        .not("due_at", "is", null),
       supabase
         .from("time_blocks")
         .select("actual_status")
@@ -32,8 +36,12 @@ export async function upsertDailyScore(dateStr?: string) {
         .eq("date", date),
     ]);
 
-  const tasksTotal = tasks?.length ?? 0;
-  const tasksCompleted = tasks?.filter((t) => t.completed_at !== null).length ?? 0;
+  const dueToday = (tasks ?? []).filter(
+    (t) => t.due_at && localDateStr(new Date(t.due_at), tz) === date
+  );
+  const tasksTotal = dueToday.length;
+  const tasksCompleted = dueToday.filter((t) => t.completed_at !== null).length;
+
   const blocksTotal = blocks?.length ?? 0;
   const blocksHit =
     blocks?.reduce((sum, b) => {
