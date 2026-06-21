@@ -19,7 +19,9 @@ export async function createBlock(formData: FormData) {
 
   if (!planned_label) throw new Error("Label required");
   if (!start_time || !end_time) throw new Error("Start and end time required");
-  if (start_time >= end_time) throw new Error("End time must be after start time");
+  // An end time earlier than the start is treated as an overnight block that
+  // crosses midnight (e.g. 23:00 → 04:00); only a zero-length block is invalid.
+  if (start_time === end_time) throw new Error("Start and end time can't be the same");
 
   const { error } = await supabase.from("time_blocks").insert({
     user_id: user.id,

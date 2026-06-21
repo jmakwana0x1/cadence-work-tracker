@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { Check, Minus, X, Plus, Trash2 } from "lucide-react";
 import { updateBlockTimes, markBlock, deleteBlock } from "@/lib/actions/blocks";
+import { addDaysStr } from "@/lib/date";
 import { toast } from "sonner";
 import type { TimeBlock, BlockStatus } from "@/types/database";
 
@@ -49,6 +50,8 @@ const STATUS_CFG = {
 } as const;
 
 // ── Helpers ─────────────────────────────────────────────────────────
+const DAY_MINS = 24 * 60;
+
 function timeToMins(t: string) {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
@@ -58,34 +61,85 @@ function minsToTime(m: number) {
   const mm = m % 60;
   return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
-function blockTop(b: TimeBlock)    { return (timeToMins(b.start_time) - START_HOUR * 60) * PX_PER_MIN; }
-function blockHeight(b: TimeBlock) { return (timeToMins(b.end_time) - timeToMins(b.start_time)) * PX_PER_MIN; }
+// True when the block ends on the next day (end time wraps past midnight).
+function isOvernight(b: TimeBlock) { return timeToMins(b.end_time) <= timeToMins(b.start_time); }
+// Duration in minutes, accounting for overnight blocks that cross midnight.
+function blockDuration(b: TimeBlock) {
+  const start = timeToMins(b.start_time);
+  const end = timeToMins(b.end_time);
+  return isOvernight(b) ? end + DAY_MINS - start : end - start;
+}
 function fmtTime(t: string) {
   const [h, m] = t.split(":").map(Number);
   const ampm = h >= 12 ? "pm" : "am";
   return `${h % 12 || 12}${m ? `:${String(m).padStart(2, "0")}` : ""}${ampm}`;
 }
 
-// ── Single draggable block ───────────────────────────────────────────
+// ── Day-view segments ───────────────────────────────────────────────
+// Overnight blocks are drawn the way Google Calendar's day view does: split at
+// midnight into a "start" chip (start → midnight) on the block's own day and an
+// "end" chip (midnight → end) on the following day. Same-day blocks are "whole".
+type SegmentKind = "whole" | "start" | "end";
+interface Segment {
+  block: TimeBlock;
+  kind: SegmentKind;
+  startMin: number; // minutes from midnight of the rendered day
+  endMin: number;
+}
+
+// Expand the blocks visible to a planner date into renderable segments.
+function buildSegments(blocks: TimeBlock[], date: string): Segment[] {
+  const prev = addDaysStr(date, -1);
+  const segs: Segment[] = [];
+  for (const block of blocks) {
+    const start = timeToMins(block.start_time);
+    const end = timeToMins(block.end_time);
+    const overnight = end <= start;
+    if (block.date === date) {
+      segs.push(
+        overnight
+          ? { block, kind: "start", startMin: start, endMin: DAY_MINS }
+          : { block, kind: "whole", startMin: start, endMin: end }
+      );
+    } else if (block.date === prev && overnight) {
+      // Tail of yesterday's overnight block, continuing into this morning.
+      segs.push({ block, kind: "end", startMin: 0, endMin: end });
+    }
+  }
+  return segs;
+}
+
+// ── Single draggable block segment ───────────────────────────────────
 function BlockItem({
-  block,
+  seg,
   isDragging,
   onMark,
   onDelete,
 }: {
-  block: TimeBlock;
+  seg: Segment;
   isDragging?: boolean;
   onMark: (id: string, status: BlockStatus) => void;
   onDelete: (id: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: block.id });
+  const { block, kind } = seg;
+  // The after-midnight tail ("end") is a read-only continuation: you reschedule
+  // an overnight block from its start chip, the same as Google Calendar.
+  const draggable = kind !== "end";
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: block.id,
+    disabled: !draggable,
+  });
   const color = CATEGORY_COLORS[block.category] ?? CATEGORY_COLORS.general;
-  const height = blockHeight(block);
+  const height = Math.max((seg.endMin - seg.startMin) * PX_PER_MIN, 16);
   const status = block.actual_status;
+
+  // Round only the "open" edge flat where the block continues onto another day.
+  const radius =
+    kind === "start" ? "rounded-t-lg" : kind === "end" ? "rounded-b-lg" : "rounded-lg";
 
   const style: React.CSSProperties = {
     position: "absolute",
-    top: blockTop(block),
+    top: seg.startMin * PX_PER_MIN,
     left: 0,
     right: 0,
     height,
@@ -97,7 +151,7 @@ function BlockItem({
   return (
     <div ref={setNodeRef} style={style}>
       <div
-        className="h-full rounded-lg flex flex-col overflow-hidden group select-none"
+        className={`h-full ${radius} flex flex-col overflow-hidden group select-none`}
         style={{
           background: `${color}18`,
           borderLeft: `3px solid ${color}`,
@@ -107,16 +161,20 @@ function BlockItem({
       >
         {/* Drag handle + label */}
         <div
-          {...listeners}
-          {...attributes}
-          className="flex-1 px-2 pt-1.5 cursor-grab active:cursor-grabbing overflow-hidden"
+          {...(draggable ? listeners : {})}
+          {...(draggable ? attributes : {})}
+          className={`flex-1 px-2 pt-1.5 overflow-hidden ${
+            draggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+          }`}
         >
           <p className="text-xs font-medium text-foreground leading-tight truncate">
+            {kind === "end" && <span className="text-muted-foreground">↳ </span>}
             {block.planned_label}
           </p>
           {height > 32 && (
             <p className="text-[10px] text-muted-foreground mt-0.5">
               {fmtTime(block.start_time)} – {fmtTime(block.end_time)}
+              {kind === "start" && " ›"}
             </p>
           )}
         </div>
@@ -160,13 +218,13 @@ function BlockItem({
 
 // ── Droppable timeline ───────────────────────────────────────────────
 function Timeline({
-  blocks,
+  segments,
   onMark,
   onDelete,
   activeId,
   onClickHour,
 }: {
-  blocks: TimeBlock[];
+  segments: Segment[];
   onMark: (id: string, status: BlockStatus) => void;
   onDelete: (id: string) => void;
   activeId: string | null;
@@ -205,13 +263,13 @@ function Timeline({
         );
       })}
 
-      {/* Blocks */}
+      {/* Block segments */}
       <div className="absolute inset-0 ml-10">
-        {blocks.map((b) => (
+        {segments.map((seg) => (
           <BlockItem
-            key={b.id}
-            block={b}
-            isDragging={activeId === b.id}
+            key={`${seg.block.id}-${seg.kind}`}
+            seg={seg}
+            isDragging={activeId === seg.block.id && seg.kind !== "end"}
             onMark={onMark}
             onDelete={onDelete}
           />
@@ -243,8 +301,9 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
   useEffect(() => {
     const el = timelineRef.current;
     if (!el) return;
-    const earliestMin = blocks.length
-      ? Math.min(...blocks.map((b) => timeToMins(b.start_time)))
+    const todays = blocks.filter((b) => b.date === date);
+    const earliestMin = todays.length
+      ? Math.min(...todays.map((b) => timeToMins(b.start_time)))
       : 6 * 60;
     el.scrollTop = Math.max(0, (earliestMin - START_HOUR * 60) * PX_PER_MIN - 24);
     // Mount-only: a one-time initial scroll position.
@@ -272,9 +331,12 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
     const deltaMinutes = e.delta.y / PX_PER_MIN;
     const rawNewStart = timeToMins(block.start_time) + deltaMinutes;
     const snapped = Math.round(rawNewStart / SNAP_MINS) * SNAP_MINS;
-    const duration = timeToMins(block.end_time) - timeToMins(block.start_time);
-    const newStart = Math.max(START_HOUR * 60, Math.min(END_HOUR * 60 - duration, snapped));
-    const newEnd = newStart + duration;
+    const duration = blockDuration(block);
+    // Same-day blocks must fit before midnight; overnight blocks may start
+    // anywhere and wrap, so their end is taken modulo a full day.
+    const maxStart = isOvernight(block) ? END_HOUR * 60 - SNAP_MINS : END_HOUR * 60 - duration;
+    const newStart = Math.max(START_HOUR * 60, Math.min(maxStart, snapped));
+    const newEnd = (newStart + duration) % DAY_MINS;
 
     const newStartTime = minsToTime(newStart);
     const newEndTime = minsToTime(newEnd);
@@ -323,14 +385,19 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
     });
   }, [blocks]);
 
-  const activeBlock = localBlocks.find((b) => b.id === activeId);
+  // Split overnight blocks into Google-Calendar-style day-view segments: this
+  // day's blocks (clamped at midnight) plus the tail of yesterday's overnighters.
+  const segments = buildSegments(localBlocks, date);
+  const activeSeg = segments.find((s) => s.block.id === activeId && s.kind !== "end");
+  const activeBlock = activeSeg?.block;
 
-  // Plan vs actual stats. Every block falls into exactly one bucket so the
-  // counts always sum to the planned total: hit + partial + missed + remaining.
-  const total = localBlocks.length;
-  const hitCount = localBlocks.filter((b) => b.actual_status === "hit").length;
-  const partialCount = localBlocks.filter((b) => b.actual_status === "partial").length;
-  const missedCount = localBlocks.filter((b) => b.actual_status === "missed").length;
+  // Plan vs actual stats — only this day's own blocks (a tail chip continued
+  // from yesterday isn't counted again here).
+  const todays = localBlocks.filter((b) => b.date === date);
+  const total = todays.length;
+  const hitCount = todays.filter((b) => b.actual_status === "hit").length;
+  const partialCount = todays.filter((b) => b.actual_status === "partial").length;
+  const missedCount = todays.filter((b) => b.actual_status === "missed").length;
   const markedCount = hitCount + partialCount + missedCount;
   const remainingCount = total - markedCount;
 
@@ -353,7 +420,7 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
       <div ref={timelineRef} className="glass-card overflow-y-auto" style={{ maxHeight: 560 }}>
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="p-4">
-            {localBlocks.length === 0 ? (
+            {segments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <p className="text-2xl">🗓️</p>
                 <p className="text-sm font-medium text-foreground">No blocks planned</p>
@@ -361,7 +428,7 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
               </div>
             ) : (
               <Timeline
-                blocks={localBlocks}
+                segments={segments}
                 onMark={handleMark}
                 onDelete={handleDelete}
                 activeId={activeId}
@@ -369,7 +436,7 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
               />
             )}
 
-            {localBlocks.length === 0 && (
+            {segments.length === 0 && (
               <div
                 className="relative mt-0"
                 style={{ height: TOTAL_HOURS * PX_PER_HOUR }}
@@ -400,12 +467,12 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
           </div>
 
           <DragOverlay dropAnimation={null}>
-            {activeBlock && (
+            {activeBlock && activeSeg && (
               <div
                 className="rounded-lg px-2 py-1.5 text-xs font-medium text-foreground shadow-lg"
                 style={{
                   width: 200,
-                  height: blockHeight(activeBlock),
+                  height: Math.max((activeSeg.endMin - activeSeg.startMin) * PX_PER_MIN, 16),
                   background: `${CATEGORY_COLORS[activeBlock.category] ?? "#8b5cf6"}30`,
                   border: `1px solid ${CATEGORY_COLORS[activeBlock.category] ?? "#8b5cf6"}60`,
                   borderLeftWidth: 3,
