@@ -17,23 +17,9 @@ interface HeatmapGridProps {
 // Cell size + gap must match for month-label alignment
 const CELL = 13;   // px
 const GAP  = 3;    // px
-const STEP = CELL + GAP; // 16px per column/row
 
-const INTENSITY_BG = [
-  "bg-white/[0.05]",          // 0 — empty
-  "bg-violet-500/20",         // 1 — faint
-  "bg-violet-500/40",         // 2 — medium
-  "bg-violet-500/70",         // 3 — strong
-  "bg-violet-500",            // 4 — full
-] as const;
-
-const INTENSITY_BORDER = [
-  "border-white/[0.07]",
-  "border-violet-500/25",
-  "border-violet-500/40",
-  "border-violet-500/60",
-  "border-violet-400",
-] as const;
+// Warm clay intensity scale (Claude design): empty → light → mid → strong → full.
+const INTENSITY_COLOR = ["#F1ECE3", "#EDD8C8", "#DCAF92", "#CE8A5E", "#C15F3C"] as const;
 
 const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DAY_LABELS   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -122,10 +108,10 @@ export function HeatmapGrid({ cells, today }: HeatmapGridProps) {
                     key={dow}
                     whileHover={{ scale: 1.5 }}
                     transition={{ type: "spring", stiffness: 600, damping: 22 }}
-                    className={`rounded-sm border cursor-pointer ${INTENSITY_BG[cell.intensity]} ${INTENSITY_BORDER[cell.intensity]} ${
-                      isToday ? "ring-1 ring-violet-400 ring-offset-1 ring-offset-background" : ""
+                    className={`cursor-pointer rounded-[3px] ${
+                      isToday ? "ring-1 ring-[#C15F3C] ring-offset-1 ring-offset-background" : ""
                     }`}
-                    style={{ width: CELL, height: CELL }}
+                    style={{ width: CELL, height: CELL, background: INTENSITY_COLOR[cell.intensity] }}
                     onMouseEnter={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       setTooltip({
@@ -146,12 +132,8 @@ export function HeatmapGrid({ cells, today }: HeatmapGridProps) {
         {/* Legend */}
         <div className="flex items-center gap-1.5 select-none" style={{ paddingLeft: DAY_COL_W + GAP }}>
           <span className="text-[10px] text-muted-foreground">Less</span>
-          {INTENSITY_BG.map((bg, i) => (
-            <div
-              key={i}
-              className={`rounded-sm border ${bg} ${INTENSITY_BORDER[i]}`}
-              style={{ width: CELL, height: CELL }}
-            />
+          {INTENSITY_COLOR.map((c, i) => (
+            <div key={i} className="rounded-[3px]" style={{ width: CELL, height: CELL, background: c }} />
           ))}
           <span className="text-[10px] text-muted-foreground">More</span>
         </div>
@@ -163,7 +145,7 @@ export function HeatmapGrid({ cells, today }: HeatmapGridProps) {
           className="fixed z-50 pointer-events-none -translate-x-1/2 -translate-y-full pb-1"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
-          <div className="glass px-3 py-1.5 rounded-lg text-xs shadow-xl border border-white/10">
+          <div className="glass px-3 py-1.5 rounded-lg text-xs shadow-xl border border-border">
             <p className="text-foreground font-medium">{formatDate(tooltip.date)}</p>
             <p className="text-muted-foreground">
               {tooltip.activity === 0

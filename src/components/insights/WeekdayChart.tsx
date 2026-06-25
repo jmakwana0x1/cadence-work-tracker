@@ -1,65 +1,46 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
 import type { WeekdayStat } from "@/lib/insights";
 
-function CustomTooltip({ active, payload }: { active?: boolean; payload?: { payload: WeekdayStat }[] }) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  return (
-    <div className="glass px-3 py-2 rounded-xl text-xs shadow-xl">
-      <p className="text-muted-foreground">{d.label}</p>
-      <p className="text-foreground font-semibold tabular-nums">
-        {d.value} {d.value === 1 ? "point" : "points"} · {d.count} logs
-      </p>
-    </div>
-  );
-}
+// Completion rate by weekday, as warm Claude-design bars. The strongest day is
+// clay-emphasized; the rest are a muted warm tint.
+export function WeekdayChart({ data }: { data: WeekdayStat[]; bestDow?: number | null }) {
+  const pcts = data.map((d) => (d.count > 0 ? Math.round((d.value / d.count) * 100) : 0));
+  const maxPct = Math.max(...pcts);
+  const hasData = maxPct > 0;
 
-export function WeekdayChart({ data, bestDow }: { data: WeekdayStat[]; bestDow: number | null }) {
-  const hasData = data.some((d) => d.value > 0);
   if (!hasData) {
     return (
-      <div className="flex items-center justify-center h-40">
+      <div className="flex h-40 items-center justify-center">
         <p className="text-xs text-muted-foreground">Not enough history yet</p>
       </div>
     );
   }
 
   return (
-    <ResponsiveContainer width="100%" height={170}>
-      <BarChart data={data} margin={{ top: 8, right: 4, left: -28, bottom: 0 }}>
-        <XAxis
-          dataKey="label"
-          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
-          tickLine={false}
-          axisLine={false}
-          allowDecimals={false}
-          width={32}
-        />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-          {data.map((d) => (
-            <Cell
-              key={d.dow}
-              fill={d.dow === bestDow ? "var(--cadence-accent)" : "rgba(139,92,246,0.35)"}
+    <div className="flex h-[168px] items-end gap-2.5">
+      {data.map((d, i) => {
+        const pct = pcts[i];
+        const strong = pct === maxPct;
+        const height = Math.round((pct / 100) * 116) + 6;
+        return (
+          <div key={d.dow} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+            <span
+              className="text-xs font-semibold tabular-nums"
+              style={{ color: strong ? "var(--cadence-accent)" : "#9A958B" }}
+            >
+              {pct}%
+            </span>
+            <div
+              className="w-full max-w-[34px]"
+              style={{ height, borderRadius: "8px 8px 4px 4px", background: strong ? "var(--cadence-accent)" : "#EAD9CC" }}
             />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+            <span className="text-xs" style={{ fontWeight: strong ? 600 : 500, color: strong ? "#2B2926" : "#9A958B" }}>
+              {d.label.slice(0, 3)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
