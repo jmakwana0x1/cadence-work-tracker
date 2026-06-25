@@ -20,7 +20,19 @@ function token(): string {
 
 // The Coach report as a plain-text Telegram message.
 export function formatCoachReportForTelegram(report: CoachReport): string {
-  const lines: string[] = [`🎯 Cadence — ${report.headline}`];
+  const lines: string[] = [];
+
+  // Lead with the Pulse: cadence number, rhythm state, momentum and load.
+  const r = report.rhythm;
+  if (r) {
+    const arrow = r.delta > 0 ? `↑${r.delta}` : r.delta < 0 ? `↓${Math.abs(r.delta)}` : "→0";
+    lines.push(`🫀 Cadence ${r.cadence} · ${r.stateLabel} (${arrow} this week)`);
+    if (r.acwrLabel !== "—") {
+      lines.push(`📊 Load: ${r.acwrLabel} (${r.acwr.toFixed(2)}× baseline)`);
+    }
+    lines.push("");
+  }
+  lines.push(`🎯 ${report.headline}`);
 
   if (report.insights.length > 0) {
     lines.push("", "What I'm seeing:");

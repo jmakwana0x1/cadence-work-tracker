@@ -2,12 +2,46 @@ import { describe, it, expect } from "vitest";
 import { formatCoachReportForTelegram, extractChatFromUpdates } from "@/lib/telegram";
 import type { CoachReport } from "@/lib/coach";
 
+const RHYTHM: NonNullable<CoachReport["rhythm"]> = {
+  cadence: 72,
+  state: "in-rhythm",
+  stateLabel: "In Rhythm",
+  delta: 4,
+  acwr: 1.1,
+  acwrLabel: "Sustainable",
+};
+
 describe("formatCoachReportForTelegram", () => {
   it("includes the headline", () => {
     const report: CoachReport = { headline: "You're in rhythm.", insights: [], recommendations: [] };
     const text = formatCoachReportForTelegram(report);
     expect(text).toContain("You're in rhythm.");
-    expect(text).toContain("Cadence");
+  });
+
+  it("leads with the rhythm header when present", () => {
+    const report: CoachReport = {
+      rhythm: RHYTHM,
+      headline: "Steady hands.",
+      insights: [],
+      recommendations: [],
+    };
+    const text = formatCoachReportForTelegram(report);
+    expect(text).toContain("Cadence 72");
+    expect(text).toContain("In Rhythm");
+    expect(text).toContain("↑4");
+    expect(text).toContain("Sustainable");
+    // header comes before the headline
+    expect(text.indexOf("Cadence 72")).toBeLessThan(text.indexOf("Steady hands."));
+  });
+
+  it("omits the load line when ACWR is unknown", () => {
+    const report: CoachReport = {
+      rhythm: { ...RHYTHM, acwrLabel: "—", acwr: 0 },
+      headline: "Hi.",
+      insights: [],
+      recommendations: [],
+    };
+    expect(formatCoachReportForTelegram(report)).not.toContain("Load:");
   });
 
   it("renders insights and recommendations with markers", () => {
