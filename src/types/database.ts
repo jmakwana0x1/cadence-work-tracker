@@ -79,6 +79,15 @@ export type RhythmState =
   | "overreaching"
   | "dormant";
 
+export interface PushSubscriptionRow {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  created_at: string;
+}
+
 export interface Season {
   id: string;
   user_id: string;
