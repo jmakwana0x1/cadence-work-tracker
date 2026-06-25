@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { localToday, addDaysStr, dowOf, domOf, userTimezone } from "@/lib/date";
+import { localToday, addDaysStr, dowOf, userTimezone } from "@/lib/date";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -12,7 +12,7 @@ export async function WeeklyConsistency() {
   const todayStr = localToday(userTimezone(user));
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = addDaysStr(todayStr, -(6 - i));
-    return { date, dow: dowOf(date), dayNum: domOf(date) };
+    return { date, dow: dowOf(date) };
   });
 
   const startDate = days[0].date;
@@ -49,93 +49,49 @@ export async function WeeklyConsistency() {
     else break;
   }
 
+  // Warm intensity tints (Claude palette): none → low → mid → high(clay).
+  const TINTS = ["#F1ECE3", "#EDD8C8", "#DCAF92", "#C15F3C"] as const;
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-          Weekly Consistency
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          {activeDays}/7 days active
-          {streak > 1 && ` · ${streak}-day streak 🔥`}
-        </p>
+    <div className="glass-card px-[26px] py-[22px]">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground-2">
+          Weekly consistency
+        </span>
+        <span className="text-[13px] font-medium text-muted-foreground">
+          {activeDays} of 7 days active
+          {streak > 1 && ` · ${streak}-day streak`}
+        </span>
       </div>
 
-      <div className="glass-card p-4">
-        <div className="grid grid-cols-7 gap-2">
-          {days.map(({ date, dow, dayNum }) => {
-            const activity = activityMap.get(date) ?? 0;
-            const isFuture = date > todayStr;
-            const isToday  = date === todayStr;
-            const pct      = totalHabits > 0 ? activity / totalHabits : 0;
+      <div className="mt-4 flex gap-2">
+        {days.map(({ date, dow }) => {
+          const activity = activityMap.get(date) ?? 0;
+          const isFuture = date > todayStr;
+          const isToday = date === todayStr;
+          const pct = totalHabits > 0 ? activity / totalHabits : 0;
 
-            // Intensity bucket
-            const intensity =
-              isFuture ? "future" :
-              pct === 0 ? "none" :
-              pct < 0.4 ? "low" :
-              pct < 0.75 ? "mid" : "high";
+          const bucket = isFuture || pct === 0 ? 0 : pct < 0.4 ? 1 : pct < 0.75 ? 2 : 3;
 
-            const bgStyle: Record<string, string> = {
-              future: "bg-white/[0.03] border-white/[0.05]",
-              none:   "bg-white/[0.05] border-white/[0.08]",
-              low:    "bg-violet-500/20 border-violet-500/25",
-              mid:    "bg-violet-500/45 border-violet-500/50",
-              high:   "bg-violet-500/80 border-violet-500",
-            };
-
-            const textStyle: Record<string, string> = {
-              future: "text-muted-foreground/30",
-              none:   "text-muted-foreground/50",
-              low:    "text-violet-300",
-              mid:    "text-violet-200",
-              high:   "text-white",
-            };
-
-            return (
+          return (
+            <div key={date} className="flex flex-1 flex-col items-center gap-2">
               <div
-                key={date}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 transition-all ${bgStyle[intensity]} ${
-                  isToday ? "ring-2 ring-violet-400 ring-offset-2 ring-offset-background" : ""
-                }`}
+                className="h-[46px] w-full rounded-[13px]"
+                style={{
+                  background: TINTS[bucket],
+                  border: bucket === 0 ? "1px solid #EAE4D8" : undefined,
+                  boxShadow: isToday ? "0 0 0 2px #FFFFFF, 0 0 0 4px #C15F3C" : undefined,
+                }}
+              />
+              <span
+                className="text-[11px]"
+                style={{ fontWeight: isToday ? 600 : 500, color: isToday ? "#2B2926" : "#9A958B" }}
               >
-                <span className={`text-[10px] font-medium uppercase tracking-wide select-none ${
-                  isToday ? "text-violet-300" : "text-muted-foreground/60"
-                }`}>
-                  {DAY_LABELS[dow]}
-                </span>
-
-                <span className={`text-lg font-bold tabular-nums leading-none ${textStyle[intensity]}`}>
-                  {dayNum}
-                </span>
-
-                {/* Habit dot indicators */}
-                <div className="flex items-center gap-0.5 h-2">
-                  {isFuture ? null : totalHabits === 0 ? null : (
-                    Array.from({ length: Math.min(totalHabits, 5) }).map((_, i) => {
-                      const filled = i < activity;
-                      return (
-                        <div
-                          key={i}
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            filled ? "bg-violet-400" : "bg-white/10"
-                          }`}
-                        />
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Activity label */}
-                {!isFuture && activity > 0 && (
-                  <span className={`text-[9px] select-none ${textStyle[intensity]}`}>
-                    {activity}/{totalHabits}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                {DAY_LABELS[dow]}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

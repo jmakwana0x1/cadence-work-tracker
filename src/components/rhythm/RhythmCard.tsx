@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { localToday, addDaysStr, userTimezone } from "@/lib/date";
 import { buildRhythm } from "@/lib/rhythmData";
-import { RHYTHM_STATE_META } from "@/lib/rhythm";
 import { RhythmHero } from "./RhythmHero";
-import { ReactiveAccent } from "./ReactiveAccent";
 import type { PulseDay } from "./Pulse";
 
 const WINDOW = 28; // days of history the Rhythm Engine reads
@@ -36,10 +34,5 @@ export async function RhythmCard() {
     cadence: d.cadence,
   }));
 
-  return (
-    <>
-      <ReactiveAccent hue={RHYTHM_STATE_META[reading.state].hue} />
-      <RhythmHero reading={reading} days={pulseDays} />
-    </>
-  );
+  return <RhythmHero reading={reading} days={pulseDays} />;
 }

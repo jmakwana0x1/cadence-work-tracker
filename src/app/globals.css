@@ -4,65 +4,64 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ─── Cadence Design Tokens ─── */
+/* ─── Cadence Design Tokens — Claude warm-light ─── */
 :root {
-  /* Accent: VIOLET identity */
-  --accent-hue: 263;
-  --cadence-accent: oklch(0.65 0.25 263);
-  --cadence-accent-muted: oklch(0.65 0.25 263 / 20%);
-  --cadence-accent-glow: oklch(0.65 0.25 263 / 40%);
+  /* Accent: CLAY identity */
+  --cadence-accent: #C15F3C;
+  --cadence-accent-muted: rgba(193, 95, 60, 0.12);
+  --cadence-accent-glow: rgba(193, 95, 60, 0.22);
+  --cadence-accent-tint: #F8EDE7; /* clay-tinted fill behind icons/pills */
 
-  /* Surfaces */
-  --background: oklch(0.08 0.01 263);
-  --surface-1: oklch(0.12 0.01 263);
-  --surface-2: oklch(0.16 0.015 263);
-  --glass: oklch(0.18 0.015 263 / 60%);
-  --glass-border: oklch(1 0 0 / 8%);
+  /* Surfaces — warm cream canvas, clean white cards */
+  --background: #FAF9F5;
+  --surface-1: #FFFFFF;
+  --surface-2: #F4F0E8;
+  --glass: #FFFFFF;
+  --glass-border: #E8E3D9;
 
-  /* Text */
-  --foreground: oklch(0.95 0 0);
-  --muted-foreground: oklch(0.60 0 0);
+  /* Text — warm near-black on cream */
+  --foreground: #2B2926;
+  --muted-foreground: #76726A;
+  --muted-foreground-2: #9A958B; /* lighter captions / micro-labels */
+
+  /* Semantic (warmed) */
+  --success: #5B8A5A;
+  --warning: #C99A3A;
 
   /* shadcn mappings */
   --card: var(--surface-1);
   --card-foreground: var(--foreground);
-  --popover: var(--surface-2);
+  --popover: var(--surface-1);
   --popover-foreground: var(--foreground);
   --primary: var(--cadence-accent);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary-foreground: #FFFFFF;
   --secondary: var(--surface-2);
   --secondary-foreground: var(--foreground);
-  --muted: var(--surface-1);
+  --muted: var(--surface-2);
   --accent: var(--cadence-accent-muted);
   --accent-foreground: var(--cadence-accent);
-  --destructive: oklch(0.65 0.22 22);
+  --destructive: #C0563F;
   --border: var(--glass-border);
-  --input: oklch(1 0 0 / 10%);
+  --input: var(--glass-border);
   --ring: var(--cadence-accent);
-  --radius: 0.75rem;
+  --radius: 0.875rem;
 
-  /* Chart colors */
+  /* Chart colors — clay + warm neutrals */
   --chart-1: var(--cadence-accent);
-  --chart-2: oklch(0.75 0.18 310);
-  --chart-3: oklch(0.70 0.15 200);
-  --chart-4: oklch(0.80 0.15 160);
-  --chart-5: oklch(0.65 0.20 40);
+  --chart-2: #C99A3A;
+  --chart-3: #5B8A5A;
+  --chart-4: #A8704A;
+  --chart-5: #76726A;
 
   /* Sidebar (unused for now) */
   --sidebar: var(--surface-1);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--cadence-accent);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: var(--cadence-accent-muted);
   --sidebar-accent-foreground: var(--cadence-accent);
   --sidebar-border: var(--glass-border);
   --sidebar-ring: var(--cadence-accent);
-}
-
-/* Dark is default — always .dark on <html> */
-.dark {
-  --background: oklch(0.08 0.01 263);
-  --foreground: oklch(0.95 0 0);
 }
 
 @theme inline {
@@ -101,6 +100,10 @@
   --color-cadence-accent: var(--cadence-accent);
   --color-cadence-accent-muted: var(--cadence-accent-muted);
   --color-cadence-accent-glow: var(--cadence-accent-glow);
+  --color-cadence-accent-tint: var(--cadence-accent-tint);
+  --color-muted-foreground-2: var(--muted-foreground-2);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
   --color-glass: var(--glass);
@@ -114,15 +117,11 @@
 
   html {
     @apply font-sans antialiased;
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.65 0.25 263 / 12%), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 80%, oklch(0.65 0.25 263 / 6%), transparent);
-    background-attachment: fixed;
     min-height: 100dvh;
   }
 
@@ -142,23 +141,19 @@
   }
 }
 
-/* ─── Glassmorphism utility ─── */
+/* ─── Card surface utility (Claude warm-light) ─── */
 @layer utilities {
   .glass {
-    background: var(--glass);
-    backdrop-filter: blur(16px) saturate(140%);
+    background: var(--surface-1);
     border: 1px solid var(--glass-border);
   }
 
+  /* Clean white card on the cream canvas: soft warm hairline, minimal shadow. */
   .glass-card {
-    background: var(--glass);
-    backdrop-filter: blur(16px) saturate(140%);
+    background: var(--card);
     border: 1px solid var(--glass-border);
-    border-radius: var(--radius-2xl);
-    /* Hairline top highlight for a more premium, lit-from-above glass look */
-    box-shadow:
-      inset 0 1px 0 0 oklch(1 0 0 / 5%),
-      0 1px 2px 0 oklch(0 0 0 / 20%);
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(43, 41, 38, 0.03);
   }
 
   /* Opt-in tactile hover for interactive cards/links */
@@ -167,14 +162,12 @@
   }
   .card-lift:hover {
     transform: translateY(-2px);
-    border-color: var(--cadence-accent-muted);
-    box-shadow:
-      inset 0 1px 0 0 oklch(1 0 0 / 6%),
-      0 8px 24px -8px var(--cadence-accent-glow);
+    border-color: #D9D2C6;
+    box-shadow: 0 8px 24px -10px rgba(43, 41, 38, 0.12);
   }
 
   .accent-glow {
-    box-shadow: 0 0 24px var(--cadence-accent-glow);
+    box-shadow: 0 0 0 1px var(--cadence-accent-muted);
   }
 
   .tabular-nums {

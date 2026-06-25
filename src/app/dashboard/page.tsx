@@ -81,9 +81,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <CommandButton />
             <Link
               href="/insights"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-foreground hover:bg-white/[0.08] transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-cadence-accent bg-cadence-accent px-3.5 py-2 text-sm font-medium text-white transition-[filter] hover:brightness-105"
             >
-              <BarChart3 className="h-4 w-4 text-cadence-accent" />
+              <BarChart3 className="h-4 w-4" />
               Insights
             </Link>
           </div>
