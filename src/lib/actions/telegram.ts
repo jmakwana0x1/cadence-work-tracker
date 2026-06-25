@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getCoachReportForUser } from "@/lib/coachReport";
+import { getCoachReportForUser, type BriefPeriod } from "@/lib/coachReport";
 import {
   telegramConfigured,
   getBotUsername,
@@ -83,7 +83,9 @@ export async function disconnectTelegram(): Promise<{ ok: boolean }> {
 
 // Send the current Coach brief to the user's Telegram. Used by the "Send now"
 // button and (via the same path) the cron route.
-export async function sendMyBrief(): Promise<{ ok: boolean; error?: string }> {
+export async function sendMyBrief(
+  period: BriefPeriod = "morning"
+): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -94,7 +96,7 @@ export async function sendMyBrief(): Promise<{ ok: boolean; error?: string }> {
   if (!chatId) return { ok: false, error: "Telegram isn't connected." };
 
   try {
-    const report = await getCoachReportForUser(supabase, user);
+    const report = await getCoachReportForUser(supabase, user, period);
     await sendTelegramMessage(chatId, formatCoachReportForTelegram(report));
     return { ok: true };
   } catch (err) {

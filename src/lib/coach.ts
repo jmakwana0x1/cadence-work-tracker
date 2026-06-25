@@ -8,6 +8,7 @@
 // it varies day-to-day but stays hydration-stable). Fully unit-testable.
 
 import type { RhythmReading, RhythmState } from "./rhythm";
+import { RHYTHM_STATE_META, acwrVerdict } from "./rhythm";
 
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -81,7 +82,19 @@ export interface CoachNote {
   tone: CoachTone;
 }
 
+// Compact, at-a-glance rhythm header — the numbers the briefs (on-screen and
+// pushed) lead with, so the message opens with substance, not just copy.
+export interface RhythmSummary {
+  cadence: number; // 0..100, rounded
+  state: RhythmState;
+  stateLabel: string; // e.g. "In Rhythm"
+  delta: number; // week-over-week cadence change
+  acwr: number; // acute:chronic load ratio
+  acwrLabel: string; // e.g. "Sustainable", "Spiking", "—"
+}
+
 export interface CoachReport {
+  rhythm?: RhythmSummary; // populated by buildCoachReport; optional for test fixtures
   headline: string;
   insights: CoachNote[]; // what the data shows
   recommendations: CoachNote[]; // what to do about it
@@ -228,6 +241,155 @@ export function buildCoachReport(input: CoachInput): CoachReport {
   }
 
   return {
+    rhythm: summarizeRhythm(reading),
+    headline,
+    insights: insights.slice(0, 3),
+    recommendations: recommendations.slice(0, 3),
+  };
+}
+
+// The at-a-glance header both briefs lead with.
+function summarizeRhythm(reading: RhythmReading): RhythmSummary {
+  return {
+    cadence: Math.round(reading.cadence),
+    state: reading.state,
+    stateLabel: RHYTHM_STATE_META[reading.state].label,
+    delta: reading.delta,
+    acwr: reading.load.acwr,
+    acwrLabel: acwrVerdict(reading.load.acwr).label,
+  };
+}
+
+// ─── Evening reflection ───
+//
+// The "reflect" brief: plan-vs-actual for today with an honest verdict (no
+// vanity inflation) and a single forward nudge for tomorrow. Reuses CoachReport
+// so the same renderers (CoachCard, Telegram) work unchanged.
+
+export interface EveningInput {
+  reading: RhythmReading;
+  weekday: WeekdayRate[]; // length 7, Sun..Sat — to flag a weak tomorrow
+  planned: number; // habits on the board today
+  done: number; // logged "done" today
+  partial: number; // logged "partial" today
+  todayDow: number; // 0..6
+  seed: string;
+}
+
+type Verdict = "full" | "strong" | "partial" | "minimal" | "missed" | "none";
+
+// Honest verdict tiers. Earned, not inflated.
+const EVENING_HEADLINES: Record<Verdict, readonly string[]> = {
+  full: [
+    "Full sweep. Every habit logged — this is the day that compounds.",
+    "Clean slate, all done. This is what showing up looks like.",
+    "You closed every loop today. The identity is in the reps.",
+  ],
+  strong: [
+    "Strong day. You did the work that matters.",
+    "Most of it, done. A day you can stack on.",
+    "Solid — not perfect, but perfect was never the job. Showing up is.",
+  ],
+  partial: [
+    "A partial day. Half-kept is still kept — log it and move on.",
+    "You got some of it. That beats the all-or-nothing trap.",
+    "Mixed day. Tomorrow's a clean rep — no guilt carried over.",
+  ],
+  minimal: [
+    "Thin day. One beat is still a beat in the rhythm.",
+    "Barely there — but you showed up honestly. That's the win.",
+    "Light day. Don't spiral; just set up tomorrow.",
+  ],
+  missed: [
+    "Nothing logged today. No spin on it — tomorrow you reset.",
+    "A blank day. It happens. The streak survives one honest miss.",
+    "Empty board. The comeback counts double — start it tomorrow.",
+  ],
+  none: [
+    "Nothing on the board today. Add a habit and the pulse starts.",
+    "Quiet day, nothing planned. Tomorrow, pick one thing.",
+  ],
+};
+
+function verdictOf(planned: number, ratio: number): Verdict {
+  if (planned === 0) return "none";
+  if (ratio >= 0.999) return "full";
+  if (ratio >= 0.7) return "strong";
+  if (ratio >= 0.4) return "partial";
+  if (ratio > 0) return "minimal";
+  return "missed";
+}
+
+export function buildEveningReflection(input: EveningInput): CoachReport {
+  const { reading, weekday, planned, done, partial, todayDow, seed } = input;
+
+  const completed = done + partial * 0.5;
+  const ratio = planned === 0 ? 0 : completed / planned;
+  const verdict = verdictOf(planned, ratio);
+  const headline = pick(EVENING_HEADLINES[verdict], seed);
+
+  const insights: CoachNote[] = [];
+  const recommendations: CoachNote[] = [];
+
+  // ── Plan vs. actual ──
+  if (planned > 0) {
+    const tail = partial > 0 ? ` (+${partial} partial)` : "";
+    insights.push({
+      id: "evening-plan-actual",
+      tone: verdict === "full" ? "good" : verdict === "missed" ? "warn" : "info",
+      text: `Planned ${planned}, finished ${done}${tail}.`,
+    });
+  }
+
+  // ── Cadence movement today ──
+  const delta = reading.delta;
+  if (delta >= 5) {
+    insights.push({
+      id: "evening-momentum-up",
+      tone: "good",
+      text: `Cadence is up +${delta} this week — today added to that.`,
+    });
+  } else if (delta <= -5) {
+    insights.push({
+      id: "evening-momentum-down",
+      tone: "warn",
+      text: `Cadence is down ${delta} this week. One honest tomorrow turns it.`,
+    });
+  }
+
+  // ── One nudge for tomorrow ──
+  if (reading.load.acwr >= 1.5) {
+    recommendations.push({
+      id: "evening-rest",
+      tone: "warn",
+      text: "You've been ramping hard. Make tomorrow a recovery day on purpose — planned rest protects the streak.",
+    });
+  } else {
+    const tomorrowDow = (todayDow + 1) % 7;
+    const t = weekday[tomorrowDow];
+    if (t && t.count >= MIN_WEEKDAY_SAMPLE && t.rate < 0.6) {
+      recommendations.push({
+        id: "evening-weak-tomorrow",
+        tone: "warn",
+        text: `Tomorrow's a ${DAY_LABELS[tomorrowDow]} — historically your softest (${pct(t.rate)}%). Pick one habit to front-load.`,
+      });
+    } else if (verdict === "full") {
+      recommendations.push({
+        id: "evening-protect",
+        tone: "good",
+        text: "Everything's logged. Set tomorrow up tonight so the streak runs itself.",
+      });
+    } else if (verdict === "missed" || verdict === "minimal") {
+      recommendations.push({
+        id: "evening-reset",
+        tone: "info",
+        text: "Pick the single most important habit for tomorrow and do it first. Momentum restarts with one rep.",
+      });
+    }
+  }
+
+  return {
+    rhythm: summarizeRhythm(reading),
     headline,
     insights: insights.slice(0, 3),
     recommendations: recommendations.slice(0, 3),

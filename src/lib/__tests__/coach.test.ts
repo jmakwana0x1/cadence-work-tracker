@@ -3,8 +3,10 @@ import {
   weakestWeekday,
   strongestWeekday,
   buildCoachReport,
+  buildEveningReflection,
   type WeekdayRate,
   type CoachInput,
+  type EveningInput,
 } from "@/lib/coach";
 import type { RhythmReading } from "@/lib/rhythm";
 
@@ -111,5 +113,65 @@ describe("buildCoachReport", () => {
     );
     expect(r.insights.length).toBeLessThanOrEqual(3);
     expect(r.recommendations.length).toBeLessThanOrEqual(3);
+  });
+});
+
+describe("buildEveningReflection", () => {
+  const eveningInput = (over: Partial<EveningInput> = {}): EveningInput => ({
+    reading: reading(),
+    weekday: flatWeekday(0.85),
+    planned: 4,
+    done: 4,
+    partial: 0,
+    todayDow: 3,
+    seed: "evening-2026-06-25",
+    ...over,
+  });
+
+  it("carries the rhythm header", () => {
+    const r = buildEveningReflection(eveningInput());
+    expect(r.rhythm?.cadence).toBe(75);
+    expect(r.rhythm?.stateLabel).toBe("In Rhythm");
+  });
+
+  it("celebrates a full sweep honestly", () => {
+    const r = buildEveningReflection(eveningInput({ planned: 3, done: 3 }));
+    expect(r.headline.toLowerCase()).toMatch(/full sweep|all done|every loop/);
+    expect(r.insights.some((n) => n.id === "evening-plan-actual")).toBe(true);
+  });
+
+  it("does not inflate a missed day", () => {
+    const r = buildEveningReflection(eveningInput({ planned: 4, done: 0, partial: 0 }));
+    expect(r.headline.toLowerCase()).toMatch(/nothing logged|blank|empty/);
+    const plan = r.insights.find((n) => n.id === "evening-plan-actual");
+    expect(plan?.tone).toBe("warn");
+    expect(plan?.text).toContain("finished 0");
+  });
+
+  it("counts partials as half toward the verdict", () => {
+    // 1 done + 2 partial = 2.0 of 4 = 0.5 → partial tier
+    const r = buildEveningReflection(eveningInput({ planned: 4, done: 1, partial: 2 }));
+    expect(r.headline.toLowerCase()).toMatch(/partial|some of it|mixed/);
+    expect(r.insights.find((n) => n.id === "evening-plan-actual")?.text).toContain("(+2 partial)");
+  });
+
+  it("warns to rest tomorrow after a load spike", () => {
+    const r = buildEveningReflection(
+      eveningInput({ reading: reading({ load: { acute: 6, chronic: 3, acwr: 2 } }) })
+    );
+    expect(r.recommendations.some((n) => n.id === "evening-rest")).toBe(true);
+  });
+
+  it("flags a weak tomorrow", () => {
+    const w = flatWeekday(0.85);
+    w[4] = { rate: 0.3, count: 8 }; // Thursday weak; today (Wed=3) → tomorrow=4
+    const r = buildEveningReflection(eveningInput({ weekday: w, todayDow: 3 }));
+    expect(r.recommendations.some((n) => n.id === "evening-weak-tomorrow")).toBe(true);
+  });
+
+  it("handles an empty board", () => {
+    const r = buildEveningReflection(eveningInput({ planned: 0, done: 0 }));
+    expect(r.headline.toLowerCase()).toMatch(/nothing on the board|nothing planned/);
+    expect(r.insights.some((n) => n.id === "evening-plan-actual")).toBe(false);
   });
 });

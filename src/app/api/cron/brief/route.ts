@@ -40,13 +40,14 @@ export async function GET(req: Request) {
   const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
+  const period = url.searchParams.get("period") === "evening" ? "evening" : "morning";
   const recipients = data.users.filter((u) => u.user_metadata?.telegram_chat_id);
 
   let sent = 0;
   const failures: string[] = [];
   for (const user of recipients) {
     try {
-      const report = await getCoachReportForUser(admin, user);
+      const report = await getCoachReportForUser(admin, user, period);
       await sendTelegramMessage(
         user.user_metadata!.telegram_chat_id,
         formatCoachReportForTelegram(report)
@@ -57,5 +58,5 @@ export async function GET(req: Request) {
     }
   }
 
-  return Response.json({ recipients: recipients.length, sent, failures });
+  return Response.json({ period, recipients: recipients.length, sent, failures });
 }

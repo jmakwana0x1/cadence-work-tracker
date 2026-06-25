@@ -45,6 +45,23 @@ Point any scheduler at it — e.g. **Vercel Cron** (`vercel.json`):
 …or a free service like cron-job.org / a GitHub Action hitting the URL with the
 `Authorization` header. `0 13 * * *` is 13:00 UTC daily — adjust to your morning.
 
+### Morning vs. evening
+
+The same route sends two flavors of brief:
+
+- **Morning** (default) — at-risk habits, weekday patterns, what to do today.
+- **Evening** — add `?period=evening`. A plan-vs-actual reflection: what you
+  finished today, an honest verdict (no vanity inflation), one nudge for tomorrow.
+
+Schedule both for a full daily loop:
+```json
+{ "crons": [
+  { "path": "/api/cron/brief", "schedule": "0 13 * * *" },
+  { "path": "/api/cron/brief?period=evening", "schedule": "0 2 * * *" }
+] }
+```
+Both lead with the Pulse header: `🫀 Cadence 72 · In Rhythm (↑4 this week)`.
+
 ## Notes
 - The service-role key bypasses RLS, so keep it server-side only. Every query in
   the brief still filters by `user_id`.

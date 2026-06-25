@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { localToday, addDaysStr, dowOf, domOf, monthOf, userTimezone } from "@/lib/date";
+import { localToday, addDaysStr, dowOf, domOf, userTimezone } from "@/lib/date";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -12,7 +12,7 @@ export async function WeeklyConsistency() {
   const todayStr = localToday(userTimezone(user));
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = addDaysStr(todayStr, -(6 - i));
-    return { date, dow: dowOf(date), dayNum: domOf(date), month: monthOf(date) };
+    return { date, dow: dowOf(date), dayNum: domOf(date) };
   });
 
   const startDate = days[0].date;
@@ -51,19 +51,19 @@ export async function WeeklyConsistency() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">Weekly Consistency</h2>
-          <p className="text-xs text-muted-foreground">
-            {activeDays}/7 days active this week
-            {streak > 1 && ` · ${streak}-day streak 🔥`}
-          </p>
-        </div>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          Weekly Consistency
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          {activeDays}/7 days active
+          {streak > 1 && ` · ${streak}-day streak 🔥`}
+        </p>
       </div>
 
       <div className="glass-card p-4">
         <div className="grid grid-cols-7 gap-2">
-          {days.map(({ date, dow, dayNum, month }) => {
+          {days.map(({ date, dow, dayNum }) => {
             const activity = activityMap.get(date) ?? 0;
             const isFuture = date > todayStr;
             const isToday  = date === todayStr;

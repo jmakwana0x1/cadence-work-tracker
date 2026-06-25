@@ -5,7 +5,6 @@ import Link from "next/link";
 import { BarChart3 } from "lucide-react";
 import { HabitList } from "@/components/habits/HabitList";
 import { WeeklyConsistency } from "@/components/heatmap/WeeklyConsistency";
-import { DisciplineScoreCard } from "@/components/score/DisciplineScoreCard";
 import { RhythmCard } from "@/components/rhythm/RhythmCard";
 import { CoachCard } from "@/components/coach/CoachCard";
 import { CommandPalette, CommandButton } from "@/components/command/CommandPalette";
@@ -16,15 +15,6 @@ import { TaskList } from "@/components/tasks/TaskList";
 import { PlannerLoader } from "@/components/planner/PlannerLoader";
 import { CalendarLoader } from "@/components/calendar/CalendarLoader";
 import { TimezoneSync } from "@/components/TimezoneSync";
-
-function ScoreSkeleton() {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="glass-card p-6 h-52 animate-pulse" />
-      <div className="glass-card p-5 h-28 animate-pulse" />
-    </div>
-  );
-}
 
 function HeatmapSkeleton() {
   return (
@@ -104,7 +94,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <SeasonCard />
         </Suspense>
 
-        {/* Rhythm Engine hero (v2) */}
+        {/* The Pulse — the single hero (v2 Rhythm Engine) */}
         <Suspense fallback={<div className="glass-card p-6 h-52 animate-pulse" />}>
           <RhythmCard />
         </Suspense>
@@ -114,15 +104,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <CoachCard />
         </Suspense>
 
-        {/* Score + Heatmap */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-6">
-          <Suspense fallback={<ScoreSkeleton />}>
-            <DisciplineScoreCard />
-          </Suspense>
-          <Suspense fallback={<HeatmapSkeleton />}>
-            <WeeklyConsistency />
-          </Suspense>
-        </div>
+        {/* Weekly consistency — demoted to a detail strip under the hero */}
+        <Suspense fallback={<HeatmapSkeleton />}>
+          <WeeklyConsistency />
+        </Suspense>
 
         {/* Habits + Tasks */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

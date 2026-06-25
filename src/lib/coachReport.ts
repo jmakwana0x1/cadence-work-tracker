@@ -7,6 +7,7 @@ import { activityValue } from "@/lib/insights";
 import { buildRhythm } from "@/lib/rhythmData";
 import {
   buildCoachReport,
+  buildEveningReflection,
   type WeekdayRate,
   type HabitAdherence,
   type CoachReport,
@@ -16,9 +17,12 @@ import type { Habit, HabitLog } from "@/types/database";
 const RHYTHM_WINDOW = 28;
 const HISTORY = 90;
 
+export type BriefPeriod = "morning" | "evening";
+
 export async function getCoachReportForUser(
   supabase: SupabaseClient,
-  user: User
+  user: User,
+  period: BriefPeriod = "morning"
 ): Promise<CoachReport> {
   const tz = userTimezone(user);
   const today = localToday(tz);
@@ -69,16 +73,31 @@ export async function getCoachReportForUser(
       logs: count,
     }));
 
-  const loggedToday = new Set(
-    allLogs.filter((l) => l.logged_at === today).map((l) => l.habit_id)
-  );
+  const todayLogs = allLogs.filter((l) => l.logged_at === today);
+  const todayDow = dowOf(today);
+
+  if (period === "evening") {
+    const done = todayLogs.filter((l) => l.status === "done").length;
+    const partial = todayLogs.filter((l) => l.status === "partial").length;
+    return buildEveningReflection({
+      reading,
+      weekday,
+      planned: habitList.length,
+      done,
+      partial,
+      todayDow,
+      seed: `evening-${today}`,
+    });
+  }
+
+  const loggedToday = new Set(todayLogs.map((l) => l.habit_id));
   const remainingToday = Math.max(habitList.length - loggedToday.size, 0);
 
   return buildCoachReport({
     reading,
     weekday,
     habits: habitAdherence,
-    todayDow: dowOf(today),
+    todayDow,
     remainingToday,
     seed: today,
   });
