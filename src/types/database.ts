@@ -70,6 +70,29 @@ export interface DailyScore {
   created_at: string;
 }
 
+// v2 Rhythm Engine. See src/lib/rhythm.ts and supabase/migrations/002_rhythm_daily.sql.
+export type RhythmState =
+  | "in-rhythm"
+  | "building"
+  | "slipping"
+  | "recovering"
+  | "overreaching"
+  | "dormant";
+
+export interface RhythmDaily {
+  id: string;
+  user_id: string;
+  date: string;
+  cadence: number;
+  completion: number;
+  attempts: number;
+  load_acute: number;
+  load_chronic: number;
+  acwr: number;
+  state: RhythmState;
+  created_at: string;
+}
+
 // Habit with today's log status joined
 export interface HabitWithTodayLog extends Habit {
   today_log: HabitLog | null;
