@@ -21,7 +21,18 @@
       "Bash(cp /tmp/genicons.mjs ./genicons.mjs)",
       "Bash(node ./genicons.mjs)",
       "Bash(node -e \"const b=require\\('fs'\\).readFileSync\\('src/app/favicon.ico'\\);console.log\\('type',b.readUInt16LE\\(2\\),'count',b.readUInt16LE\\(4\\)\\);const off=b.readUInt32LE\\(6+12\\);console.log\\('first img is PNG:', b.slice\\(off,off+8\\).toString\\('hex'\\)==='89504e470d0a1a0a'\\)\")",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(git checkout *)",
+      "Bash(npm run *)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git merge *)",
+      "Bash(npm error *)",
+      "Read(//home/jmakwana01/.npm/_logs/**)",
+      "Bash(echo \"=== exit: $? ===\")",
+      "Bash(echo \"exit $?\")",
+      "Bash(node *)"
     ]
   }
 }

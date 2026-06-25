@@ -11,6 +11,7 @@ import { CoachCard } from "@/components/coach/CoachCard";
 import { CommandPalette, CommandButton } from "@/components/command/CommandPalette";
 import { SeasonCard } from "@/components/season/SeasonCard";
 import { PushToggle } from "@/components/pwa/PushToggle";
+import { TelegramConnect } from "@/components/notify/TelegramConnect";
 import { TaskList } from "@/components/tasks/TaskList";
 import { PlannerLoader } from "@/components/planner/PlannerLoader";
 import { CalendarLoader } from "@/components/calendar/CalendarLoader";
@@ -85,6 +86,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <TelegramConnect />
             <PushToggle />
             <CommandButton />
             <Link
