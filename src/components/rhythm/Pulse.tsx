@@ -17,10 +17,6 @@ interface PulseProps {
   days: PulseDay[];
   hue: number; // accent hue (oklch) from the rhythm state
   className?: string;
-  // Editorial overrides (all optional — defaults preserve the original look).
-  color?: string; // stroke/beat color; defaults to the light oklch accent
-  area?: boolean; // fill under the cadence line (default true)
-  strokeWidth?: number; // cadence line width (default 2.5)
 }
 
 const W = 720;
@@ -47,9 +43,9 @@ function smoothPath(points: { x: number; y: number }[]): string {
   return d;
 }
 
-export function Pulse({ days, hue, className, color, area = true, strokeWidth = 2.5 }: PulseProps) {
+export function Pulse({ days, hue, className }: PulseProps) {
   const uid = useId();
-  const accent = color ?? `oklch(0.72 0.18 ${hue})`;
+  const accent = `oklch(0.72 0.18 ${hue})`;
   const accentSoft = `oklch(0.72 0.18 ${hue} / 0.35)`;
 
   const n = days.length;
@@ -103,7 +99,7 @@ export function Pulse({ days, hue, className, color, area = true, strokeWidth = 
       })}
 
       {/* cadence area */}
-      {area && areaPath && <path d={areaPath} fill={`url(#pulse-fill-${uid})`} />}
+      {areaPath && <path d={areaPath} fill={`url(#pulse-fill-${uid})`} />}
 
       {/* cadence line, drawn on mount */}
       {linePath && (
@@ -111,7 +107,7 @@ export function Pulse({ days, hue, className, color, area = true, strokeWidth = 
           d={linePath}
           fill="none"
           stroke={accent}
-          strokeWidth={strokeWidth}
+          strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={{ pathLength: 0, opacity: 0.4 }}
