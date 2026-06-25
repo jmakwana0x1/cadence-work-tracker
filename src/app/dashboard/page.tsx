@@ -8,6 +8,7 @@ import { WeeklyConsistency } from "@/components/heatmap/WeeklyConsistency";
 import { DisciplineScoreCard } from "@/components/score/DisciplineScoreCard";
 import { RhythmCard } from "@/components/rhythm/RhythmCard";
 import { CoachCard } from "@/components/coach/CoachCard";
+import { CommandPalette, CommandButton } from "@/components/command/CommandPalette";
 import { TaskList } from "@/components/tasks/TaskList";
 import { PlannerLoader } from "@/components/planner/PlannerLoader";
 import { CalendarLoader } from "@/components/calendar/CalendarLoader";
@@ -68,6 +69,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   return (
     <main className="min-h-dvh p-6 md:p-8">
       <TimezoneSync current={user.user_metadata?.timezone ?? null} />
+      <CommandPalette />
       <div className="max-w-5xl mx-auto flex flex-col gap-8">
 
         {/* Header */}
@@ -80,13 +82,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </p>
           </div>
-          <Link
-            href="/insights"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-foreground hover:bg-white/[0.08] transition-colors"
-          >
-            <BarChart3 className="h-4 w-4 text-cadence-accent" />
-            Insights
-          </Link>
+          <div className="flex items-center gap-2">
+            <CommandButton />
+            <Link
+              href="/insights"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-foreground hover:bg-white/[0.08] transition-colors"
+            >
+              <BarChart3 className="h-4 w-4 text-cadence-accent" />
+              Insights
+            </Link>
+          </div>
         </div>
 
         {/* Rhythm Engine hero (v2) */}
