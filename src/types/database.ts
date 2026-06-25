@@ -79,6 +79,16 @@ export type RhythmState =
   | "overreaching"
   | "dormant";
 
+export interface Season {
+  id: string;
+  user_id: string;
+  title: string;
+  theme: string | null;
+  started_on: string; // YYYY-MM-DD
+  ends_on: string; // YYYY-MM-DD
+  created_at: string;
+}
+
 export interface RhythmDaily {
   id: string;
   user_id: string;
