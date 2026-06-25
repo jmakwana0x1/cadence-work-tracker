@@ -48,7 +48,7 @@ export function ScoreHistoryChart({ data, average }: { data: Point[]; average: n
             <stop offset="95%" stopColor="var(--cadence-accent)" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid stroke="#EEE9DF" strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="label"
           tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
@@ -67,7 +67,7 @@ export function ScoreHistoryChart({ data, average }: { data: Point[]; average: n
         {average !== null && (
           <ReferenceLine
             y={average}
-            stroke="rgba(255,255,255,0.25)"
+            stroke="#B5AFA3"
             strokeDasharray="4 4"
             label={{
               value: `avg ${average.toFixed(0)}`,

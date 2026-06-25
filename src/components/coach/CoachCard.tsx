@@ -4,9 +4,9 @@ import { type CoachNote } from "@/lib/coach";
 import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, CheckCircle2 } from "lucide-react";
 
 const TONE_STYLES = {
-  good: { wrap: "border-emerald-500/15 bg-emerald-500/[0.06]", text: "text-emerald-200/90", Icon: TrendingUp },
-  warn: { wrap: "border-amber-500/15 bg-amber-500/[0.06]", text: "text-amber-200/90", Icon: AlertTriangle },
-  info: { wrap: "border-white/10 bg-white/[0.04]", text: "text-muted-foreground", Icon: Lightbulb },
+  good: { wrap: "border-[#DCE7D8] bg-[#EEF3EC]", text: "text-[#3F6B3E]", Icon: TrendingUp },
+  warn: { wrap: "border-[#EADfC4] bg-[#F7F0DE]", text: "text-[#8A6D24]", Icon: AlertTriangle },
+  info: { wrap: "border-border bg-secondary", text: "text-muted-foreground", Icon: Lightbulb },
 } as const;
 
 function Note({ note }: { note: CoachNote }) {

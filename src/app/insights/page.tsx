@@ -10,7 +10,6 @@ import {
   longestStreak,
   activityValue,
 } from "@/lib/insights";
-import { scoreColor } from "@/lib/discipline";
 import { ScoreHistoryChart } from "@/components/insights/ScoreHistoryChart";
 import { WeekdayChart } from "@/components/insights/WeekdayChart";
 import { ConsistencyHeatmap } from "@/components/heatmap/ConsistencyHeatmap";
@@ -25,27 +24,31 @@ function StatCard({
   label,
   value,
   sub,
-  valueClass,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
-  valueClass?: string;
 }) {
   return (
-    <div className="glass-card card-lift p-4 flex flex-col gap-1.5">
-      <div className="flex items-center gap-1.5 text-muted-foreground">
-        {icon}
-        <span className="text-[11px] uppercase tracking-wider">{label}</span>
+    <div className="glass-card px-[22px] py-5">
+      <div className="flex items-center gap-2">
+        <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-cadence-accent-tint text-cadence-accent">
+          {icon}
+        </span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground-2">{label}</span>
       </div>
-      <p className={`text-2xl font-semibold tabular-nums ${valueClass ?? "text-foreground"}`}>
-        {value}
-      </p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+      <div className="mt-3.5 flex items-baseline gap-2">
+        <span className="text-[40px] font-semibold leading-none tabular-nums tracking-[-0.03em] text-foreground">{value}</span>
+        {sub && <span className="text-[13px] font-medium text-muted-foreground-2">{sub}</span>}
+      </div>
     </div>
   );
 }
+
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground-2">{children}</div>
+);
 
 export default async function InsightsPage() {
   const supabase = await createClient();
@@ -75,20 +78,16 @@ export default async function InsightsPage() {
   const logs = (logRows ?? []) as HabitLog[];
   const categoryOf = new Map(habits.map((h) => [h.id, h.category]));
 
-  // --- Score history ---
+  // --- Cadence trend ---
   const historyData = (scoreRows ?? []).map((s) => ({
     date: s.date,
     score: Number(s.discipline_score),
-    label: new Date(s.date + "T00:00:00").toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    }),
+    label: new Date(s.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
   }));
   const average =
-    historyData.length > 0
-      ? historyData.reduce((sum, p) => sum + p.score, 0) / historyData.length
-      : null;
+    historyData.length > 0 ? historyData.reduce((sum, p) => sum + p.score, 0) / historyData.length : null;
   const latest = historyData.length > 0 ? historyData[historyData.length - 1].score : null;
+  const trendUp = historyData.length > 1 && historyData[historyData.length - 1].score >= historyData[0].score;
 
   // --- Weekday + category ---
   const weekday = weekdayBreakdown(logs);
@@ -109,121 +108,113 @@ export default async function InsightsPage() {
     return streak;
   })();
 
+  const rangeLabel = `${new Date(windowStart + "T00:00:00").toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  })} – ${new Date(today + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+
   return (
     <main className="min-h-dvh p-6 md:p-8">
-      <div className="max-w-5xl mx-auto flex flex-col gap-8">
+      <div className="mx-auto flex max-w-5xl flex-col gap-5">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Dashboard
-            </Link>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Insights</h1>
-            <p className="text-muted-foreground mt-1 text-sm">Your last 90 days, at a glance.</p>
+        <div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Dashboard
+          </Link>
+          <div className="mt-3.5 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Insights</h1>
+              <p className="mt-1.5 text-[15px] text-muted-foreground">Your last 90 days, at a glance.</p>
+            </div>
+            <span className="text-[13px] font-medium text-muted-foreground-2">{rangeLabel}</span>
           </div>
         </div>
 
         {/* Summary stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard
-            icon={<TrendingUp className="h-3.5 w-3.5" />}
-            label="Avg score"
-            value={average !== null ? average.toFixed(0) : "—"}
-            sub={latest !== null ? `latest ${latest.toFixed(0)}` : "no data yet"}
-            valueClass={average !== null ? scoreColor(average) : undefined}
-          />
-          <StatCard
-            icon={<Flame className="h-3.5 w-3.5" />}
-            label="Current streak"
-            value={`${currentStreak}`}
-            sub={currentStreak === 1 ? "day" : "days"}
-          />
-          <StatCard
-            icon={<Trophy className="h-3.5 w-3.5" />}
-            label="Longest streak"
-            value={`${longest}`}
-            sub={longest === 1 ? "day" : "days"}
-          />
-          <StatCard
-            icon={<CalendarCheck className="h-3.5 w-3.5" />}
-            label="Active days"
-            value={`${totalActive}`}
-            sub="in 90 days"
-          />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard icon={<TrendingUp className="h-4 w-4" />} label="Avg cadence" value={average !== null ? average.toFixed(0) : "—"} sub={latest !== null ? `latest ${latest.toFixed(0)}` : "no data yet"} />
+          <StatCard icon={<Flame className="h-4 w-4" />} label="Current streak" value={`${currentStreak}`} sub={currentStreak === 1 ? "day" : "days"} />
+          <StatCard icon={<Trophy className="h-4 w-4" />} label="Longest streak" value={`${longest}`} sub={longest === 1 ? "day" : "days"} />
+          <StatCard icon={<CalendarCheck className="h-4 w-4" />} label="Active days" value={`${totalActive}`} sub="in 90 days" />
         </div>
 
-        {/* Score history */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-base font-semibold text-foreground">Discipline trend</h2>
-          <div className="glass-card p-5">
-            <ScoreHistoryChart data={historyData} average={average} />
-          </div>
-        </section>
-
-        {/* Weekday + categories */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <section className="flex flex-col gap-4">
+        {/* Cadence trend */}
+        <div className="glass-card px-[26px] py-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-base font-semibold text-foreground">When you show up</h2>
-              <p className="text-xs text-muted-foreground">
-                {best ? (
-                  <>
-                    Strongest on <span className="text-foreground font-medium">{best.label}</span>
-                    {worst && (
-                      <>
-                        {" "}· weakest on{" "}
-                        <span className="text-foreground font-medium">{worst.label}</span>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  "Log a few more days to spot your patterns"
-                )}
+              <SectionLabel>Cadence trend</SectionLabel>
+              <p className="mt-1.5 text-[13px] text-muted-foreground">
+                Daily score across 90 days{trendUp ? " · trending up" : ""}
               </p>
             </div>
-            <div className="glass-card p-5">
+            <div className="flex items-center gap-4">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <span className="h-0.5 w-3.5 rounded bg-cadence-accent" />
+                Cadence
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <span className="w-3.5 border-t-2 border-dashed border-[#B5AFA3]" />
+                90-day avg
+              </span>
+            </div>
+          </div>
+          <div className="mt-3">
+            <ScoreHistoryChart data={historyData} average={average} />
+          </div>
+        </div>
+
+        {/* Weekday + categories */}
+        <div className="flex flex-col gap-5 lg:flex-row">
+          <div className="glass-card flex-1 px-[26px] py-6">
+            <SectionLabel>When you show up</SectionLabel>
+            <p className="mt-1.5 text-[13px] text-muted-foreground">Completion rate by weekday</p>
+            <div className="mt-5">
               <WeekdayChart data={weekday} bestDow={best?.dow ?? null} />
             </div>
-          </section>
-
-          <section className="flex flex-col gap-4">
-            <div>
-              <h2 className="text-base font-semibold text-foreground">By category</h2>
-              <p className="text-xs text-muted-foreground">How solidly you hit each area</p>
+            <div className="mt-[18px] border-t border-[#EEE9DF] pt-4 text-[13px] leading-relaxed text-muted-foreground">
+              {best ? (
+                <>
+                  Strongest on <span className="font-semibold text-cadence-accent">{best.label}</span>
+                  {worst && <> · weakest on {worst.label}</>}
+                </>
+              ) : (
+                "Log a few more days to spot your patterns"
+              )}
             </div>
-            <div className="glass-card p-5 flex flex-col gap-3.5">
+          </div>
+
+          <div className="glass-card flex-1 px-[26px] py-6">
+            <SectionLabel>By category</SectionLabel>
+            <p className="mt-1.5 text-[13px] text-muted-foreground">Completion across your tracked areas</p>
+            <div className="mt-5 flex flex-col gap-[18px]">
               {categories.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-8 text-center">No habit logs yet</p>
+                <p className="py-8 text-center text-xs text-muted-foreground">No habit logs yet</p>
               ) : (
                 categories.map((c) => (
-                  <div key={c.category} className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="capitalize text-foreground font-medium">{c.category}</span>
-                      <span className="tabular-nums text-muted-foreground">
-                        {c.adherencePct}% · {c.logs} logs
+                  <div key={c.category}>
+                    <div className="mb-2 flex items-baseline justify-between">
+                      <span className="text-sm font-medium capitalize text-foreground">{c.category}</span>
+                      <span className="flex items-baseline gap-2">
+                        <span className="text-sm font-semibold tabular-nums text-foreground">{c.adherencePct}%</span>
+                        <span className="text-xs text-muted-foreground-2">{c.logs} logs</span>
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-cadence-accent transition-all"
-                        style={{ width: `${c.adherencePct}%` }}
-                      />
+                    <div className="h-[9px] overflow-hidden rounded-full bg-[#F1ECE3]">
+                      <div className="h-full rounded-full bg-cadence-accent transition-all" style={{ width: `${c.adherencePct}%` }} />
                     </div>
                   </div>
                 ))
               )}
             </div>
-          </section>
+          </div>
         </div>
 
         {/* Year heatmap */}
-        <section className="flex flex-col gap-4">
-          <ConsistencyHeatmap />
-        </section>
+        <ConsistencyHeatmap />
       </div>
     </main>
   );

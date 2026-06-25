@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { PWARegister } from "@/components/pwa/PWARegister";
 import "./globals.css";
 
-const geistSans = Geist({
+// Inter is the Claude design system's sans. Keep the --font-geist-sans variable
+// name so the @theme `--font-sans` mapping keeps working unchanged.
+const geistSans = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
@@ -21,12 +23,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Cadence",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#7c3aed",
+  themeColor: "#FAF9F5",
 };
 
 export default function RootLayout({
@@ -37,12 +39,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <body className="min-h-full flex flex-col">
         <PWARegister />
         {children}
-        <Toaster position="bottom-right" richColors theme="dark" />
+        <Toaster position="bottom-right" richColors theme="light" />
       </body>
     </html>
   );

@@ -32,7 +32,12 @@
       "Read(//home/jmakwana01/.npm/_logs/**)",
       "Bash(echo \"=== exit: $? ===\")",
       "Bash(echo \"exit $?\")",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(git check-ignore *)",
+      "Bash(git commit *)",
+      "Bash(lsof -ti:3000)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(pkill -f \"next-server\")"
     ]
   }
 }

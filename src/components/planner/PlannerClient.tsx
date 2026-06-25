@@ -418,7 +418,7 @@ export function PlannerClient({ blocks, date, onCreateClick }: PlannerClientProp
 
       {/* Timeline */}
       <div ref={timelineRef} className="glass-card overflow-y-auto" style={{ maxHeight: 560 }}>
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext id="planner-dnd" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="p-4">
             {segments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">

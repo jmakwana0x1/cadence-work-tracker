@@ -69,7 +69,7 @@ export function TaskRow({ task }: TaskRowProps) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: isPending ? 0.5 : 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
-      className="flex items-center gap-3 py-2.5 px-1 group border-b border-white/[0.04] last:border-0"
+      className="flex items-center gap-3 py-2.5 px-1 group border-b border-[#F1ECE3] last:border-0"
     >
       {/* Checkbox */}
       <button
@@ -78,7 +78,7 @@ export function TaskRow({ task }: TaskRowProps) {
         role="checkbox"
         aria-checked={done}
         aria-label={done ? `Mark "${task.title}" incomplete` : `Mark "${task.title}" complete`}
-        className="flex-shrink-0 w-4 h-4 rounded-full border border-white/20 hover:border-cadence-accent/60 flex items-center justify-center transition-all"
+        className="flex-shrink-0 w-4 h-4 rounded-full border border-[#D9D2C6] hover:border-cadence-accent/60 flex items-center justify-center transition-all"
         style={done ? { background: "var(--cadence-accent)", borderColor: "var(--cadence-accent)" } : {}}
       >
         {done && (

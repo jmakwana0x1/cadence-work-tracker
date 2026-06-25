@@ -2,17 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { Activity, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Pulse, type PulseDay } from "./Pulse";
-import {
-  RHYTHM_STATE_META,
-  acwrVerdict,
-  type RhythmReading,
-} from "@/lib/rhythm";
+import { acwrVerdict, type RhythmReading, type RhythmState } from "@/lib/rhythm";
+import { RHYTHM_STATE_META } from "@/lib/rhythm";
 
 function CountUp({ to, duration = 1.3 }: { to: number; duration?: number }) {
   const mv = useMotionValue(0);
-  const display = useTransform(mv, (v) => v.toFixed(1));
+  const display = useTransform(mv, (v) => Math.round(v).toString());
   const hasRun = useRef(false);
   useEffect(() => {
     if (hasRun.current) return;
@@ -21,6 +18,30 @@ function CountUp({ to, duration = 1.3 }: { to: number; duration?: number }) {
     return controls.stop;
   }, [mv, to, duration]);
   return <motion.span>{display}</motion.span>;
+}
+
+const STATE_COLOR: Record<RhythmState, string> = {
+  "in-rhythm": "#5B8A5A",
+  building: "#5B8A5A",
+  recovering: "#5B8A5A",
+  slipping: "#C99A3A",
+  overreaching: "#C0563F",
+  dormant: "#9A958B",
+};
+
+function verdictColor(label: string): string {
+  switch (label) {
+    case "Sustainable":
+      return "#5B8A5A";
+    case "Ramping":
+      return "#C99A3A";
+    case "Spiking":
+      return "#C0563F";
+    case "Coasting":
+      return "#76726A";
+    default:
+      return "#9A958B";
+  }
 }
 
 interface RhythmHeroProps {
@@ -32,63 +53,87 @@ export function RhythmHero({ reading, days }: RhythmHeroProps) {
   const { cadence, delta, load, state } = reading;
   const meta = RHYTHM_STATE_META[state];
   const verdict = acwrVerdict(load.acwr);
+  const stateColor = STATE_COLOR[state];
 
   const DeltaIcon = delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
-  const deltaColor =
-    delta > 0 ? "text-emerald-400" : delta < 0 ? "text-red-400" : "text-muted-foreground";
+
+  const cadences = days.map((d) => Math.round(d.cadence)).filter((v) => v > 0);
+  const low = cadences.length ? Math.min(...cadences) : 0;
+  const high = cadences.length ? Math.max(...cadences) : 0;
+  const activeDays = days.filter((d) => d.completion > 0).length;
+  const consistency = days.length ? Math.round((activeDays / days.length) * 100) : 0;
+
+  const metrics = [
+    { label: "Load · ACWR", value: load.acwr ? load.acwr.toFixed(2) : "—", note: verdict.label, noteColor: verdictColor(verdict.label) },
+    { label: "Acute", value: String(load.acute), note: "/day", noteColor: "#9A958B" },
+    { label: "Chronic", value: String(load.chronic), note: "avg", noteColor: "#9A958B" },
+    { label: "Consistency", value: `${consistency}%`, note: "28-day", noteColor: "#9A958B" },
+  ];
 
   return (
-    <div className="glass-card relative overflow-hidden p-6">
-      {/* The Pulse, bled into the background */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 opacity-90">
-        <Pulse days={days} hue={meta.hue} className="h-full w-full" />
-      </div>
-
-      <div className="relative flex flex-col gap-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground">
-              <Activity className="h-3.5 w-3.5" style={{ color: `oklch(0.72 0.18 ${meta.hue})` }} />
-              Cadence
-            </p>
+    <div className="glass-card p-6 md:p-7">
+      {/* Top: number + state, momentum */}
+      <div className="flex flex-wrap items-start justify-between gap-5">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground-2">Cadence</div>
+          <div className="mt-2 flex items-end gap-4">
             <div
-              className="text-7xl font-bold leading-none tabular-nums"
-              style={{ color: `oklch(0.78 0.16 ${meta.hue})` }}
+              className="font-semibold tabular-nums text-foreground"
+              style={{ fontSize: "clamp(64px, 12vw, 92px)", lineHeight: 0.86, letterSpacing: "-0.04em" }}
             >
               <CountUp to={cadence} />
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <span
-                className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                style={{
-                  color: `oklch(0.82 0.14 ${meta.hue})`,
-                  backgroundColor: `oklch(0.72 0.18 ${meta.hue} / 0.16)`,
-                }}
-              >
-                {meta.label}
-              </span>
-              <span className={`flex items-center gap-1 text-xs font-semibold ${deltaColor}`}>
-                <DeltaIcon className="h-3.5 w-3.5" />
-                {delta > 0 ? "+" : ""}
-                {delta} <span className="font-normal text-muted-foreground">/wk</span>
-              </span>
+            <div className="pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ background: stateColor }} />
+                <span className="text-[15px] font-semibold text-foreground">{meta.label}</span>
+              </div>
+              <p className="mt-1.5 max-w-[180px] text-[13px] leading-snug text-muted-foreground">{meta.blurb}</p>
             </div>
-          </div>
-
-          {/* Load readout */}
-          <div className="flex flex-col items-end gap-1 text-right">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Load</p>
-            <p className={`text-2xl font-bold tabular-nums ${verdict.tone}`}>
-              {load.acwr ? load.acwr.toFixed(2) : "—"}
-            </p>
-            <p className={`text-xs font-medium ${verdict.tone}`}>{verdict.label}</p>
-            <p className="text-[10px] text-muted-foreground">
-              {load.acute} now · {load.chronic} avg
-            </p>
           </div>
         </div>
 
-        <p className="max-w-md text-sm text-muted-foreground">{meta.blurb}</p>
+        <div className="flex flex-col items-end gap-2">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13px] font-semibold"
+            style={{ background: "var(--cadence-accent-tint)", color: "var(--cadence-accent)" }}
+          >
+            <DeltaIcon className="h-3.5 w-3.5" />
+            {delta > 0 ? "+" : ""}
+            {delta} / wk
+          </span>
+          <span className="text-xs text-muted-foreground-2">28-day momentum</span>
+        </div>
+      </div>
+
+      {/* The Pulse */}
+      <div className="mt-5">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground-2">The Pulse · 28 days</span>
+          {high > 0 && (
+            <span className="text-xs text-muted-foreground-2">
+              low {low} · high {high}
+            </span>
+          )}
+        </div>
+        <div className="h-[182px] w-full">
+          <Pulse days={days} className="h-full w-full" />
+        </div>
+      </div>
+
+      {/* Metrics */}
+      <div className="mt-[18px] flex flex-wrap gap-2 border-t border-[#EEE9DF] pt-[18px]">
+        {metrics.map((m) => (
+          <div key={m.label} className="min-w-[96px] flex-1">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground-2">{m.label}</div>
+            <div className="mt-1.5 flex items-baseline gap-1.5">
+              <span className="text-2xl font-semibold tabular-nums text-foreground">{m.value}</span>
+              <span className="text-xs font-medium" style={{ color: m.noteColor }}>
+                {m.note}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
