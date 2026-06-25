@@ -9,6 +9,7 @@ import { DisciplineScoreCard } from "@/components/score/DisciplineScoreCard";
 import { RhythmCard } from "@/components/rhythm/RhythmCard";
 import { CoachCard } from "@/components/coach/CoachCard";
 import { CommandPalette, CommandButton } from "@/components/command/CommandPalette";
+import { SeasonCard } from "@/components/season/SeasonCard";
 import { TaskList } from "@/components/tasks/TaskList";
 import { PlannerLoader } from "@/components/planner/PlannerLoader";
 import { CalendarLoader } from "@/components/calendar/CalendarLoader";
@@ -93,6 +94,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </Link>
           </div>
         </div>
+
+        {/* Season (v2) */}
+        <Suspense fallback={<div className="glass-card p-5 h-24 animate-pulse" />}>
+          <SeasonCard />
+        </Suspense>
 
         {/* Rhythm Engine hero (v2) */}
         <Suspense fallback={<div className="glass-card p-6 h-52 animate-pulse" />}>
