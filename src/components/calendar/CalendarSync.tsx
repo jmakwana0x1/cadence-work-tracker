@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarDays, RefreshCw, LinkIcon, AlertCircle, CheckCircle2 } from "lucide-react";
-import { CalendarGrid } from "./CalendarGrid";
 import type { CalendarEvent } from "@/types/database";
+
+// Compact Google Calendar connect/sync control. The events themselves render in
+// the unified Today timeline — this is just the connection + manual sync.
 
 type SyncState =
   | { status: "idle" }
@@ -20,9 +22,9 @@ interface CalendarSyncProps {
   initialError?: string;
 }
 
-export function CalendarSync({ connected, events, tz, today, initialError }: CalendarSyncProps) {
+export function CalendarSync({ connected, events, initialError }: CalendarSyncProps) {
   const [syncState, setSyncState] = useState<SyncState>({ status: "idle" });
-  const [isSyncing, startSync]    = useTransition();
+  const [isSyncing, startSync] = useTransition();
 
   function handleSync() {
     setSyncState({ status: "idle" });
@@ -53,23 +55,18 @@ export function CalendarSync({ connected, events, tz, today, initialError }: Cal
 
   return (
     <div className="glass-card overflow-hidden">
-
-      {/* Header row */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06]">
+      <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            connected
-              ? "bg-emerald-500/15 border border-emerald-500/20"
-              : "bg-white/5 border border-white/10"
-          }`}>
-            <CalendarDays className={`h-3.5 w-3.5 ${connected ? "text-emerald-400" : "text-muted-foreground"}`} />
+          <div
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+            style={{ background: connected ? "#EEF3EC" : "var(--secondary)", border: `1px solid ${connected ? "#DCE7D8" : "var(--border)"}` }}
+          >
+            <CalendarDays className="h-3.5 w-3.5" style={{ color: connected ? "#5B8A5A" : "var(--muted-foreground)" }} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground leading-none">Google Calendar</p>
-            <p className={`text-[11px] mt-0.5 ${connected ? "text-emerald-400/70" : "text-muted-foreground"}`}>
-              {connected
-                ? `Connected · ${events.length} upcoming event${events.length !== 1 ? "s" : ""}`
-                : "Not connected"}
+            <p className="text-sm font-semibold leading-none text-foreground">Google Calendar</p>
+            <p className="mt-1 text-[11px]" style={{ color: connected ? "#5B8A5A" : "var(--muted-foreground)" }}>
+              {connected ? `Connected · ${events.length} event${events.length !== 1 ? "s" : ""}` : "Not connected"}
             </p>
           </div>
         </div>
@@ -81,15 +78,15 @@ export function CalendarSync({ connected, events, tz, today, initialError }: Cal
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSync}
                 disabled={isSyncing}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cadence-accent hover:bg-cadence-accent/85 text-white text-xs font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-xl bg-cadence-accent px-3 py-1.5 text-xs font-medium text-white transition-[filter] hover:brightness-105 disabled:opacity-50"
               >
                 <RefreshCw className={`h-3 w-3 ${isSyncing ? "animate-spin" : ""}`} />
-                {isSyncing ? "Syncing…" : "Sync now"}
+                {isSyncing ? "Syncing…" : "Sync"}
               </motion.button>
               <a
                 href="/api/calendar/connect"
                 title="Reconnect"
-                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground/60 transition-colors"
+                className="rounded-xl border border-border p-1.5 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <LinkIcon className="h-3.5 w-3.5" />
               </a>
@@ -97,7 +94,7 @@ export function CalendarSync({ connected, events, tz, today, initialError }: Cal
           ) : (
             <a
               href="/api/calendar/connect"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cadence-accent hover:bg-cadence-accent/85 text-white text-sm font-medium transition-colors"
+              className="flex items-center gap-1.5 rounded-xl bg-cadence-accent px-4 py-2 text-sm font-medium text-white transition-[filter] hover:brightness-105"
             >
               <LinkIcon className="h-3.5 w-3.5" />
               Connect
@@ -106,77 +103,41 @@ export function CalendarSync({ connected, events, tz, today, initialError }: Cal
         </div>
       </div>
 
-      {/* Status banner */}
       <AnimatePresence>
         {(initialError || syncState.status !== "idle") && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="px-5 py-2.5 border-b border-white/[0.06] text-xs">
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <div className="border-t border-border px-4 py-2.5 text-xs">
               {initialError && (
-                <div className="flex items-start gap-2 text-red-400">
-                  <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 text-destructive">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
                   <span className="break-all">{decodeURIComponent(initialError)}</span>
                 </div>
               )}
               {syncState.status === "error" && (
-                <div className="flex items-start gap-2 text-red-400">
-                  <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 text-destructive">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Sync failed</p>
-                    <p className="mt-0.5 opacity-70 break-all">{syncState.message}</p>
+                    <p className="mt-0.5 break-all opacity-70">{syncState.message}</p>
                   </div>
                 </div>
               )}
               {syncState.status === "partial" && (
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-2 text-amber-400">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span className="font-medium">
-                      Partial sync — {syncState.pulled} pulled · {syncState.pushed} pushed
-                    </span>
-                  </div>
-                  {syncState.errors.map((e, i) => (
-                    <p key={i} className="text-amber-400/60 pl-5 break-all">{e}</p>
-                  ))}
+                <div className="flex items-center gap-2" style={{ color: "#C99A3A" }}>
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  <span className="font-medium">Partial — {syncState.pulled} pulled · {syncState.pushed} pushed</span>
                 </div>
               )}
               {syncState.status === "success" && (
-                <div className="flex items-center gap-2 text-emerald-400">
+                <div className="flex items-center gap-2" style={{ color: "#5B8A5A" }}>
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>{syncState.pulled} events pulled · {syncState.pushed} blocks pushed to Google</span>
+                  <span>{syncState.pulled} pulled · {syncState.pushed} pushed</span>
                 </div>
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Week time-grid (Google Calendar style) */}
-      {connected && events.length > 0 ? (
-        <CalendarGrid events={events} tz={tz} today={today} />
-      ) : connected ? (
-        <div className="flex items-center gap-3 px-5 py-5">
-          <CalendarDays className="h-6 w-6 text-muted-foreground/20 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-muted-foreground">No upcoming events</p>
-            <p className="text-xs text-muted-foreground/40 mt-0.5">Hit Sync now to pull from Google</p>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-3 px-5 py-5">
-          <CalendarDays className="h-6 w-6 text-muted-foreground/20 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-muted-foreground">Connect Google Calendar</p>
-            <p className="text-xs text-muted-foreground/40 mt-0.5">
-              Pull events and push your time blocks to Google
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

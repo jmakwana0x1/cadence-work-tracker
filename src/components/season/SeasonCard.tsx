@@ -44,44 +44,41 @@ export async function SeasonCard() {
 
   const p = seasonProgress(season.started_on, season.ends_on, today);
 
-  return (
-    <div className="glass-card flex flex-col gap-4 p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
-            <Flag className="h-3 w-3 text-cadence-accent" />
-            {p.isComplete ? "Season complete" : `Week ${p.weekNumber} of ${p.totalWeeks}`}
-          </p>
-          <h2 className="mt-1 truncate text-lg font-semibold text-foreground">{season.title}</h2>
-          {season.theme && (
-            <p className="mt-0.5 truncate text-sm text-muted-foreground">{season.theme}</p>
-          )}
-        </div>
-        <div className="shrink-0 text-right">
-          <p className="text-2xl font-bold tabular-nums text-cadence-accent">{p.percent}%</p>
-          <p className="text-[10px] text-muted-foreground">
-            {p.isComplete ? "done" : `${p.daysRemaining} days left`}
-          </p>
-        </div>
+  if (p.isComplete) {
+    return (
+      <div className="glass-card flex flex-wrap items-center justify-between gap-3 rounded-[14px] px-5 py-3.5">
+        <span className="flex items-center gap-2 text-sm text-foreground">
+          <CalendarCheck className="h-4 w-4 text-cadence-accent" />
+          <span className="font-semibold">{season.title}</span> — 12 weeks done. Name the next chapter.
+        </span>
+        <StartSeasonDialog variant="subtle" />
       </div>
+    );
+  }
 
-      {/* Progress */}
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+  // Slim horizontal strip (Claude design).
+  return (
+    <div className="glass-card flex items-center gap-4 rounded-[14px] px-5 py-3.5">
+      <div className="flex items-baseline gap-2 whitespace-nowrap">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground-2">
+          <Flag className="h-3 w-3 text-cadence-accent" />
+          Season
+        </span>
+        <span className="text-sm font-semibold text-foreground">
+          Week {p.weekNumber} of {p.totalWeeks}
+        </span>
+      </div>
+      <div className="h-[18px] w-px bg-border" />
+      <span className="min-w-0 flex-none truncate text-[13px] text-muted-foreground">
+        {season.theme || season.title}
+      </span>
+      <div className="h-1.5 min-w-[60px] flex-1 overflow-hidden rounded-full bg-[#F1ECE3]">
         <div
           className="h-full rounded-full bg-cadence-accent transition-[width] duration-700"
           style={{ width: `${p.percent}%` }}
         />
       </div>
-
-      {p.isComplete && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.06] px-3.5 py-2.5">
-          <span className="flex items-center gap-2 text-xs text-emerald-200/90">
-            <CalendarCheck className="h-4 w-4" />
-            12 weeks done. Name the next chapter.
-          </span>
-          <StartSeasonDialog variant="subtle" />
-        </div>
-      )}
+      <span className="whitespace-nowrap text-[13px] font-semibold text-foreground">{p.percent}%</span>
     </div>
   );
 }

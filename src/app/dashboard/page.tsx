@@ -12,7 +12,7 @@ import { SeasonCard } from "@/components/season/SeasonCard";
 import { PushToggle } from "@/components/pwa/PushToggle";
 import { TelegramConnect } from "@/components/notify/TelegramConnect";
 import { TaskList } from "@/components/tasks/TaskList";
-import { PlannerLoader } from "@/components/planner/PlannerLoader";
+import { TodayTimelineLoader } from "@/components/timeline/TodayTimelineLoader";
 import { CalendarLoader } from "@/components/calendar/CalendarLoader";
 import { TimezoneSync } from "@/components/TimezoneSync";
 
@@ -89,45 +89,48 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </div>
         </div>
 
-        {/* Season (v2) */}
-        <Suspense fallback={<div className="glass-card p-5 h-24 animate-pulse" />}>
+        {/* Season strip */}
+        <Suspense fallback={<div className="glass-card h-14 rounded-[14px] animate-pulse" />}>
           <SeasonCard />
         </Suspense>
 
-        {/* The Pulse — the single hero (v2 Rhythm Engine) */}
-        <Suspense fallback={<div className="glass-card p-6 h-52 animate-pulse" />}>
-          <RhythmCard />
-        </Suspense>
+        {/* Two columns: the "see/reflect/do" stack | the unified Today timeline */}
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+          <div className="flex min-w-0 flex-1 flex-col gap-5">
+            <Suspense fallback={<div className="glass-card p-6 h-72 animate-pulse" />}>
+              <RhythmCard />
+            </Suspense>
 
-        {/* Coach (v2, deterministic) */}
-        <Suspense fallback={<div className="glass-card p-5 h-40 animate-pulse" />}>
-          <CoachCard />
-        </Suspense>
+            <Suspense fallback={<div className="glass-card p-5 h-40 animate-pulse" />}>
+              <CoachCard />
+            </Suspense>
 
-        {/* Weekly consistency — demoted to a detail strip under the hero */}
-        <Suspense fallback={<HeatmapSkeleton />}>
-          <WeeklyConsistency />
-        </Suspense>
+            <Suspense fallback={<HeatmapSkeleton />}>
+              <WeeklyConsistency />
+            </Suspense>
 
-        {/* Habits + Tasks */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Suspense fallback={<HabitSkeleton />}>
-            <HabitList />
-          </Suspense>
-          <Suspense fallback={<div className="glass-card p-4 h-48 animate-pulse" />}>
-            <TaskList />
-          </Suspense>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <Suspense fallback={<HabitSkeleton />}>
+                <HabitList />
+              </Suspense>
+              <Suspense fallback={<div className="glass-card p-4 h-48 animate-pulse" />}>
+                <TaskList />
+              </Suspense>
+            </div>
+          </div>
+
+          {/* Unified Today timeline (Planner + Google Calendar) */}
+          <div className="w-full lg:w-[340px] lg:flex-none">
+            <Suspense fallback={<div className="glass-card p-4 h-[760px] animate-pulse" />}>
+              <TodayTimelineLoader />
+            </Suspense>
+            <div className="mt-5">
+              <Suspense fallback={null}>
+                <CalendarLoader calendarError={calendarError} />
+              </Suspense>
+            </div>
+          </div>
         </div>
-
-        {/* Day Planner */}
-        <Suspense fallback={<div className="glass-card p-4 h-64 animate-pulse" />}>
-          <PlannerLoader />
-        </Suspense>
-
-        {/* Google Calendar */}
-        <Suspense fallback={<div className="glass-card p-4 h-24 animate-pulse" />}>
-          <CalendarLoader calendarError={calendarError} />
-        </Suspense>
 
       </div>
     </main>

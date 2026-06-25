@@ -77,9 +77,9 @@ export async function HabitList() {
       </div>
 
       {atRisk.length > 0 && (
-        <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.07] px-3.5 py-2.5">
+        <div className="flex items-start gap-2.5 rounded-xl border border-[#EADFC4] bg-[#F7F0DE] px-3.5 py-2.5">
           <span className="text-base leading-none mt-0.5">🔥</span>
-          <p className="text-xs text-amber-200/90 leading-relaxed">
+          <p className="text-xs leading-relaxed text-[#8A6D24]">
             {atRisk.length === 1 ? (
               <>
                 Your <span className="font-semibold">{atRisk[0].streak}-day</span>{" "}
