@@ -7,6 +7,7 @@ import { HabitList } from "@/components/habits/HabitList";
 import { WeeklyConsistency } from "@/components/heatmap/WeeklyConsistency";
 import { DisciplineScoreCard } from "@/components/score/DisciplineScoreCard";
 import { RhythmCard } from "@/components/rhythm/RhythmCard";
+import { CoachCard } from "@/components/coach/CoachCard";
 import { TaskList } from "@/components/tasks/TaskList";
 import { PlannerLoader } from "@/components/planner/PlannerLoader";
 import { CalendarLoader } from "@/components/calendar/CalendarLoader";
@@ -91,6 +92,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         {/* Rhythm Engine hero (v2) */}
         <Suspense fallback={<div className="glass-card p-6 h-52 animate-pulse" />}>
           <RhythmCard />
+        </Suspense>
+
+        {/* Coach (v2, deterministic) */}
+        <Suspense fallback={<div className="glass-card p-5 h-40 animate-pulse" />}>
+          <CoachCard />
         </Suspense>
 
         {/* Score + Heatmap */}
