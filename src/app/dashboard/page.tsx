@@ -19,7 +19,7 @@ import { TimezoneSync } from "@/components/TimezoneSync";
 function HeatmapSkeleton() {
   return (
     <div className="flex flex-col gap-4">
-      <div className="h-5 w-32 bg-white/5 rounded animate-pulse" />
+      <div className="h-5 w-32 rounded bg-black/5 animate-pulse" />
       <div className="glass-card p-5 h-36 animate-pulse" />
     </div>
   );
@@ -29,10 +29,10 @@ function HabitSkeleton() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <div className="h-5 w-16 bg-white/5 rounded animate-pulse" />
-        <div className="h-9 w-28 bg-white/5 rounded-xl animate-pulse" />
+        <div className="h-5 w-16 rounded bg-black/5 animate-pulse" />
+        <div className="h-9 w-28 rounded-xl bg-black/5 animate-pulse" />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="flex flex-col gap-3">
         {[1, 2, 3].map((i) => (
           <div key={i} className="glass-card p-4 h-28 animate-pulse" />
         ))}
