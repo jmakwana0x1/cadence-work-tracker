@@ -6,6 +6,7 @@ import { BarChart3 } from "lucide-react";
 import { HabitList } from "@/components/habits/HabitList";
 import { WeeklyConsistency } from "@/components/heatmap/WeeklyConsistency";
 import { DisciplineScoreCard } from "@/components/score/DisciplineScoreCard";
+import { RhythmCard } from "@/components/rhythm/RhythmCard";
 import { TaskList } from "@/components/tasks/TaskList";
 import { PlannerLoader } from "@/components/planner/PlannerLoader";
 import { CalendarLoader } from "@/components/calendar/CalendarLoader";
@@ -86,6 +87,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             Insights
           </Link>
         </div>
+
+        {/* Rhythm Engine hero (v2) */}
+        <Suspense fallback={<div className="glass-card p-6 h-52 animate-pulse" />}>
+          <RhythmCard />
+        </Suspense>
 
         {/* Score + Heatmap */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-6">
