@@ -56,9 +56,10 @@ export async function SeasonCard() {
     );
   }
 
-  // Slim horizontal strip (Claude design).
+  // Slim horizontal strip (Claude design). Wraps to two rows on mobile so the
+  // progress bar drops to its own full-width line instead of overflowing.
   return (
-    <div className="glass-card flex items-center gap-4 rounded-[14px] px-5 py-3.5">
+    <div className="glass-card flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-[14px] px-5 py-3.5">
       <div className="flex items-baseline gap-2 whitespace-nowrap">
         <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground-2">
           <Flag className="h-3 w-3 text-cadence-accent" />
@@ -68,17 +69,19 @@ export async function SeasonCard() {
           Week {p.weekNumber} of {p.totalWeeks}
         </span>
       </div>
-      <div className="h-[18px] w-px bg-border" />
-      <span className="min-w-0 flex-none truncate text-[13px] text-muted-foreground">
+      <div className="hidden h-[18px] w-px bg-border sm:block" />
+      <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground sm:flex-none">
         {season.theme || season.title}
       </span>
-      <div className="h-1.5 min-w-[60px] flex-1 overflow-hidden rounded-full bg-[#F1ECE3]">
-        <div
-          className="h-full rounded-full bg-cadence-accent transition-[width] duration-700"
-          style={{ width: `${p.percent}%` }}
-        />
+      <div className="flex w-full items-center gap-3 sm:w-auto sm:flex-1">
+        <div className="h-1.5 min-w-[60px] flex-1 overflow-hidden rounded-full bg-[#F1ECE3]">
+          <div
+            className="h-full rounded-full bg-cadence-accent transition-[width] duration-700"
+            style={{ width: `${p.percent}%` }}
+          />
+        </div>
+        <span className="whitespace-nowrap text-[13px] font-semibold text-foreground">{p.percent}%</span>
       </div>
-      <span className="whitespace-nowrap text-[13px] font-semibold text-foreground">{p.percent}%</span>
     </div>
   );
 }

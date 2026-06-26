@@ -75,13 +75,16 @@ export function RhythmHero({ reading, days }: RhythmHeroProps) {
       {/* Top: number + state, momentum */}
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground-2">Cadence</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground-2">Cadence · habit momentum</div>
           <div className="mt-2 flex items-end gap-4">
-            <div
-              className="font-semibold tabular-nums text-foreground"
-              style={{ fontSize: "clamp(64px, 12vw, 92px)", lineHeight: 0.86, letterSpacing: "-0.04em" }}
-            >
-              <CountUp to={cadence} />
+            <div className="flex items-end">
+              <div
+                className="font-semibold tabular-nums text-foreground"
+                style={{ fontSize: "clamp(64px, 12vw, 92px)", lineHeight: 0.86, letterSpacing: "-0.04em" }}
+              >
+                <CountUp to={cadence} />
+              </div>
+              <span className="pb-2 pl-1 text-lg font-medium text-muted-foreground-2">/ 100</span>
             </div>
             <div className="pb-2.5">
               <div className="flex items-center gap-2">
@@ -91,6 +94,9 @@ export function RhythmHero({ reading, days }: RhythmHeroProps) {
               <p className="mt-1.5 max-w-[180px] text-[13px] leading-snug text-muted-foreground">{meta.blurb}</p>
             </div>
           </div>
+          <p className="mt-2.5 max-w-sm text-[12px] leading-snug text-muted-foreground-2">
+            How consistently you&apos;re hitting your habits, smoothed over the last week — recent days count most, so one miss only dents it.
+          </p>
         </div>
 
         <div className="flex flex-col items-end gap-2">
